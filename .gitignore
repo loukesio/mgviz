@@ -19,6 +19,7 @@ results/
 # generated reports and demo data
 *.html
 !design_handoff_mgviz_report/reference/*.html
+!src/mgviz/templates/report.html
 demo_esv/
 demo_*/
 

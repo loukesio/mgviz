@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>/*__TITLE__*/</title>
+<style>
+/*__CSS__*/
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <header class="hdr">
+    <div class="hdr-text">
+      <div class="kicker" id="kicker"></div>
+      <div class="headline" id="headline"></div>
+      <div class="subline" id="subline"></div>
+    </div>
+    <div class="hdr-actions">
+      <button class="btn" id="btn-export-all" type="button">Export detections (TSV)</button>
+      <button class="textact" id="btn-theme" type="button" title="Switch between light and dark">Theme</button>
+    </div>
+  </header>
+  <div class="body">
+    <aside class="focus" id="focus" aria-label="Focus"></aside>
+    <main class="main">
+      <nav class="tabs" id="tabs" role="tablist"></nav>
+      <div class="tabrow">
+        <div class="tabdesc" id="tabdesc"></div>
+        <div class="focusline" id="focusline"></div>
+      </div>
+
+      <section class="view" id="view-overview" hidden>
+        <div id="ov-bar"></div>
+        <div id="ov-samples"></div>
+        <div id="ov-shared"></div>
+      </section>
+
+      <section class="view" id="view-table" hidden>
+        <div id="tbl-bar" class="toolbar"></div>
+        <div id="tbl-wrap"></div>
+      </section>
+
+      <section class="view" id="view-tree" hidden>
+        <div id="tree-bar"></div>
+        <div id="tree-colors"></div>
+        <div class="figbox" id="tree-box">
+          <div class="fig" id="tree-fig"></div>
+          <div class="svgtip" id="tree-tip" hidden></div>
+        </div>
+        <div class="foot" id="tree-foot"></div>
+      </section>
+
+      <section class="view" id="view-heat" hidden>
+        <div id="heat-bar"></div>
+        <div class="figbox scroll" id="heat-box">
+          <div class="fig" id="heat-fig"></div>
+          <div class="svgtip" id="heat-tip" hidden></div>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+<div id="drawer-root"></div>
+<div id="popover-root"></div>
+
+<script>/*__D3__*/</script>
+<script>window.__MGVIZ__ = /*__DATA__*/;</script>
+<script>
+/*__JS__*/
+</script>
+</body>
+</html>
