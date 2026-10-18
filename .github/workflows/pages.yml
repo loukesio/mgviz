@@ -1,7 +1,8 @@
 name: Demo report
 
-# Builds a 100-sample synthetic report with `mgviz demo` and publishes it as the project page,
-# so the interactive report can be tried without installing anything.
+# Builds the landing page and two demo reports with `mgviz demo` and publishes them to the
+# gh-pages branch (https://loukesio.github.io/mgviz/), so the interactive report can be tried
+# without installing anything.
 
 on:
   push:
@@ -10,9 +11,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+  contents: write
 
 concurrency:
   group: pages
@@ -34,16 +33,10 @@ jobs:
           cp docs/images/logo.png docs/images/logo_alive.svg docs/images/*.jpg site/images/
           mgviz demo demo100 -n 100 --seed 11 --run-id "demo, 100 samples" -o site/demo100.html
           mgviz demo demo4 -n 4 --run-id "demo, 4 samples" -o site/demo4.html
-      - uses: actions/upload-pages-artifact@v3
+      - name: Publish to the gh-pages branch
+        uses: peaceiris/actions-gh-pages@v4
         with:
-          path: site
-
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - id: deployment
-        uses: actions/deploy-pages@v4
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./site
+          force_orphan: true
+          commit_message: "Demo reports from ${{ github.sha }}"

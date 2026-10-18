@@ -445,10 +445,8 @@ database. Please cite EsViritu and the tools below when you publish results:
 - Bostock M. *et al.* D3: Data-Driven Documents. *IEEE TVCG* 2011.
 - Nextflow: Di Tommaso P. *et al.* *Nature Biotechnology* 2017.
 
-Colour palettes: [ltc](https://github.com/loukesio/ltc-color-palettes).
-Report design developed with Claude Design; the specification is in
-`design_handoff_mgviz_report/`. To cite mgviz itself, use the metadata in
-[CITATION.cff](CITATION.cff) (GitHub shows a "Cite this repository" button).
+To cite mgviz itself, use the metadata in [CITATION.cff](CITATION.cff)
+(GitHub shows a "Cite this repository" button).
 
 ## License
 
