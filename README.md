@@ -1,19 +1,14 @@
-<p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="docs/images/logo_alive_dark.gif">
-    <img src="docs/images/logo_alive.gif" width="220" alt="mgviz">
-  </picture>
-</p>
-<h1 align="center">mgviz</h1>
-<p align="center"><b>Virus detection reports</b> · metagenomic reads in, an interactive report out</p>
+# mgviz
 
 [![CI](https://github.com/loukesio/mgviz/actions/workflows/ci.yml/badge.svg)](https://github.com/loukesio/mgviz/actions/workflows/ci.yml)
 [![Container](https://github.com/loukesio/mgviz/actions/workflows/docker.yml/badge.svg)](https://github.com/loukesio/mgviz/actions/workflows/docker.yml)
-[![Nextflow](https://img.shields.io/badge/nextflow-%E2%89%A523.10-23aa62.svg)](https://www.nextflow.io/)
+[![Nextflow](https://img.shields.io/badge/nextflow-%E2%89%A524.10-23aa62.svg)](https://www.nextflow.io/)
 [![run with docker](https://img.shields.io/badge/run%20with-docker-0db7ed?logo=docker)](https://ghcr.io/loukesio/mgviz)
 [![run with singularity](https://img.shields.io/badge/run%20with-singularity-1d355c)](https://sylabs.io/docs/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Live demo](https://img.shields.io/badge/report-live%20demo-1f5f8b)](https://loukesio.github.io/mgviz/)
+
+<img align="right" src="docs/images/logo.png" width="300" alt="mgviz logo">
 
 **mgviz** detects viruses in short-read metagenomes and explains every call in an
 interactive report. Reads are mapped to a reference database of ~31,000 viral
