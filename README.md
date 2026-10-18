@@ -8,7 +8,7 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Live demo](https://img.shields.io/badge/report-live%20demo-1f5f8b)](https://loukesio.github.io/mgviz/)
 
-<img align="right" src="docs/images/logo.png" width="300" alt="mgviz logo">
+<img align="right" src="docs/images/logo_alive.svg" width="300" alt="mgviz logo">
 
 **mgviz** detects viruses in short-read metagenomes and explains every call in an
 interactive report. Reads are mapped to a reference database of ~31,000 viral
