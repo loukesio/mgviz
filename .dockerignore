@@ -1,0 +1,10 @@
+EsViritu/
+.git/
+pipeline/work/
+pipeline/results/
+*.html
+**/__pycache__/
+.pytest_cache/
+*.egg-info/
+build/
+dist/

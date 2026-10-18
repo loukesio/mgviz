@@ -1,0 +1,21 @@
+{
+  "_comment": "Starter host-range table for the CHECK SOURCE flag. A virus whose name, species, genus or family matches a pattern gets that host group; animal hosts in a human sample (stool, nasal, clinical) are flagged. Plant viruses are flagged only outside stool, where they are expected from diet. Phages are never flagged. Patterns are case-insensitive regular expressions tested against 'name | species | genus | family'.",
+  "human_sample_types": ["stool", "nasal", "clinical"],
+  "flag_hosts": ["pig", "cattle", "dog", "cat", "bird", "rodent", "horse", "ruminant", "bat", "primate", "fish"],
+  "plant_flag_outside": ["stool"],
+  "rules": [
+    {"host": "pig", "pattern": "porcine|swine|\\bpig\\b|\\bsus\\b"},
+    {"host": "cattle", "pattern": "bovine|cattle|\\bcow\\b|\\bbos\\b"},
+    {"host": "dog", "pattern": "canine|\\bdog\\b|\\bcanis\\b"},
+    {"host": "cat", "pattern": "feline|\\bcat\\b|\\bfelis\\b"},
+    {"host": "bird", "pattern": "avian|chicken|\\bduck\\b|turkey|\\bgoose\\b|\\bgull\\b|pigeon|\\bfowl\\b"},
+    {"host": "rodent", "pattern": "murine|\\bmouse\\b|\\bmurid\\b|\\brat\\b|rodent|hamster"},
+    {"host": "horse", "pattern": "equine|\\bhorse\\b|\\bequus\\b"},
+    {"host": "ruminant", "pattern": "ovine|caprine|\\bsheep\\b|\\bgoat\\b|\\bdeer\\b"},
+    {"host": "bat", "pattern": "\\bbat\\b|chiropteran"},
+    {"host": "primate", "pattern": "simian|macaque|\\bmonkey\\b|\\bape\\b"},
+    {"host": "fish", "pattern": "salmon|trout|carp|tilapia|\\bfish\\b"},
+    {"host": "plant", "pattern": "Virgaviridae|Solemoviridae|Tombusviridae|Potyviridae|Secoviridae|Bromoviridae|Closteroviridae|Geminiviridae|Luteoviridae|Betaflexiviridae|Alphaflexiviridae|Tymoviridae|Partitiviridae|tomato|pepper|tobacco|turnip|cucumber|cucurbit|\\bbean\\b|potato|grapevine|\\bbeet\\b|lettuce|\\bmaize\\b|\\brice\\b|wheat|mosaic virus|mottle virus|yellows virus"},
+    {"host": "phage", "pattern": "phage|Crassvirales|Intestiviridae|Microviridae|Caudoviricetes|Steigviridae|Crevaviridae|Suoliviridae"}
+  ]
+}

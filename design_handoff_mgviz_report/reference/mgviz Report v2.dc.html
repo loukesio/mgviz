@@ -1,0 +1,869 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+<script src="https://cdn.jsdelivr.net/npm/html-to-image@1.11.11/dist/html-to-image.js"></script>
+<style>
+:root{--bg:#f5f4ef;--panel:#ffffff;--fg:#1c201e;--muted:#636a66;--line:#d9dcd4;--line2:#eceee7;--accent:#1f5f8b;--hi:rgba(28,32,30,.04);--sel:rgba(28,32,30,.08);--abund:#2b5d86;--attn:#a84f2b;--sans:-apple-system,"Segoe UI",system-ui,Helvetica,sans-serif;--serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;--mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace}
+body[data-theme="dark"]{--bg:#131615;--panel:#1b1f1d;--fg:#e4e6e0;--muted:#99a19b;--line:#2e3431;--line2:#242927;--accent:#8ec0e4;--hi:rgba(228,230,224,.05);--sel:rgba(228,230,224,.11);--abund:#8ec0e4;--attn:#f0957a}
+html,body{margin:0;background:var(--bg);color:var(--fg)}
+*{box-sizing:border-box}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;text-align:left}
+input,select{font:inherit;color:inherit}
+a{color:var(--accent)} a:hover{color:var(--fg)}
+svg text{user-select:none}
+@keyframes fadein{from{opacity:0;transform:translateX(12px)}to{opacity:1;transform:none}}
+</style>
+</helmet>
+<div style="min-height:100vh;background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:13px;line-height:1.45">
+  <sc-if value="{{ notEmbed }}" hint-placeholder-val="{{ true }}">
+    <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:24px;flex-wrap:wrap;padding:20px 28px 16px;border-bottom:1px solid var(--line)">
+      <div style="display:flex;flex-direction:column;gap:4px">
+        <div style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600">mgviz · run brief_demo · generated 2026-10-18</div>
+        <div style="font-family:var(--serif);font-size:26px;line-height:1.1;font-weight:600;letter-spacing:-.01em">{{ headline }}</div>
+        <div style="color:var(--muted);font-size:13px">{{ subline }}</div>
+      </div>
+      <button onClick="{{ exportAllTsv }}" style="padding:7px 12px;border:1px solid var(--line);border-radius:6px;background:var(--panel);font-size:12px;font-weight:500" style-hover="border-color:var(--fg)">Export detections (TSV)</button>
+    </div>
+  </sc-if>
+  <div style="display:flex;align-items:flex-start">
+    <sc-if value="{{ notEmbed }}" hint-placeholder-val="{{ true }}">
+      <aside style="flex:none;width:236px;position:sticky;top:0;max-height:100vh;overflow-y:auto;padding:18px 14px 40px 20px;display:flex;flex-direction:column;gap:22px;border-right:1px solid var(--line)">
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-weight:600;padding:0 8px">Find a virus</div>
+          <input value="{{ search }}" onChange="{{ setSearch }}" placeholder="Name, family, accession" style="padding:6px 9px;border:1px solid var(--line);border-radius:6px;background:var(--panel);font-size:12px;outline:none;width:100%"></input>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:1px">
+          <button onClick="{{ toggleSamplesOpen }}" style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-weight:600;padding:0 8px 6px;width:100%" style-hover="color:var(--fg)"><span style="width:12px;font-size:12px;line-height:1;color:var(--fg);flex:none">{{ samplesCaret }}</span><span style="flex:1">Samples</span><span style="text-transform:none;letter-spacing:0;font-weight:400">{{ samplesHead }}</span></button>
+          <button onClick="{{ allSamples.click }}" style="display:flex;justify-content:space-between;padding:5px 8px;border-radius:5px;background:{{ allSamples.bg }};font-weight:{{ allSamples.weight }}" style-hover="background:var(--hi)"><span>All samples</span><span style="color:var(--muted)">{{ allSamples.n }}</span></button>
+          <sc-if value="{{ samplesOpen }}" hint-placeholder-val="{{ true }}">
+            <sc-if value="{{ manySamples }}" hint-placeholder-val="{{ false }}">
+              <input value="{{ sampleQ }}" onChange="{{ setSampleQ }}" placeholder="Filter samples" style="margin:4px 0;padding:5px 9px;border:1px solid var(--line);border-radius:6px;background:var(--panel);font-size:12px;outline:none;width:100%"></input>
+            </sc-if>
+            <sc-for list="{{ sampleGroups }}" as="sg" hint-placeholder-count="3">
+              <button onClick="{{ sg.toggle }}" style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);padding:7px 8px 3px;width:100%" style-hover="color:var(--fg)"><span style="width:12px;font-size:12px;line-height:1;color:var(--fg);flex:none">{{ sg.caret }}</span><span style="flex:1">{{ sg.type }}</span><span>{{ sg.count }}</span></button>
+              <sc-for list="{{ sg.items }}" as="c" hint-placeholder-count="2">
+                <button onClick="{{ c.click }}" style="display:flex;justify-content:space-between;gap:8px;padding:4px 8px 4px 24px;border-radius:5px;background:{{ c.bg }};font-weight:{{ c.weight }}" style-hover="background:var(--hi)"><span style="font-family:var(--mono);font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ c.name }}</span><span style="color:var(--muted);font-variant-numeric:tabular-nums">{{ c.n }}</span></button>
+              </sc-for>
+            </sc-for>
+          </sc-if>
+          <sc-if value="{{ samplesClosedSel }}" hint-placeholder-val="{{ false }}">
+            <button onClick="{{ allSamples.click }}" style="display:flex;justify-content:space-between;gap:8px;padding:4px 8px 4px 24px;border-radius:5px;background:var(--sel);font-weight:600"><span style="font-family:var(--mono);font-size:11.5px">{{ selSampleName }}</span><span style="color:var(--muted)">×</span></button>
+          </sc-if>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:1px">
+          <button onClick="{{ toggleFamsOpen }}" style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-weight:600;padding:0 8px 6px;width:100%" style-hover="color:var(--fg)"><span style="width:12px;font-size:12px;line-height:1;color:var(--fg);flex:none">{{ famsCaret }}</span><span style="flex:1">Families</span><span style="text-transform:none;letter-spacing:0;font-weight:400">{{ famsHead }}</span></button>
+          <button onClick="{{ allFams.click }}" style="display:flex;justify-content:space-between;padding:5px 8px;border-radius:5px;background:{{ allFams.bg }};font-weight:{{ allFams.weight }}" style-hover="background:var(--hi)"><span>All families</span><span style="color:var(--muted)">{{ allFams.n }}</span></button>
+          <sc-for list="{{ famItems }}" as="c" hint-placeholder-count="6">
+            <button onClick="{{ c.click }}" style="display:flex;justify-content:space-between;gap:8px;padding:4px 8px 4px 24px;border-radius:5px;background:{{ c.bg }};font-weight:{{ c.weight }}" style-hover="background:var(--hi)"><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ c.name }}</span><span style="color:var(--muted);font-variant-numeric:tabular-nums">{{ c.n }}</span></button>
+          </sc-for>
+          <sc-if value="{{ famsMore }}" hint-placeholder-val="{{ false }}">
+            <button onClick="{{ toggleFamsOpen }}" style="padding:4px 8px 4px 24px;font-size:11.5px;color:var(--accent)">{{ famsMoreLabel }}</button>
+          </sc-if>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-weight:600;padding:0 8px">Minimum confidence</div>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);border:1px solid var(--line);border-radius:6px;overflow:hidden">
+            <sc-for list="{{ minTiers }}" as="m" hint-placeholder-count="4"><button onClick="{{ m.click }}" style="padding:5px 0;text-align:center;font-size:11px;background:{{ m.bg }};color:{{ m.fg }}">{{ m.label }}</button></sc-for>
+          </div>
+          <div style="font-size:11px;color:var(--muted);padding:0 2px;text-wrap:pretty">{{ minTierNote }}</div>
+        </div>
+        <sc-if value="{{ hasSel }}" hint-placeholder-val="{{ false }}">
+          <button onClick="{{ clearSel }}" style="font-size:12px;color:var(--accent);text-decoration:underline;padding:0 8px">Clear focus</button>
+        </sc-if>
+      </aside>
+    </sc-if>
+    <main style="flex:1;min-width:0;padding:4px 28px 60px">
+      <div style="display:flex;gap:28px;border-bottom:1px solid var(--line);flex-wrap:wrap">
+        <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="4">
+          <button onClick="{{ t.click }}" style="padding:14px 0 11px;font-size:15px;font-weight:{{ t.weight }};color:{{ t.color }};border-bottom:2px solid {{ t.under }};margin-bottom:-1px" style-hover="color:var(--fg)">{{ t.label }}</button>
+        </sc-for>
+      </div>
+      <div style="display:flex;justify-content:space-between;gap:16px;align-items:baseline;margin:12px 0 18px;flex-wrap:wrap">
+        <div style="color:var(--muted);font-size:13px;text-wrap:pretty">{{ tabDesc }}</div>
+        <div style="font-size:11.5px;font-family:var(--mono)">{{ focusText }}</div>
+      </div>
+
+  <!-- OVERVIEW -->
+  <sc-if value="{{ isOverview }}" hint-placeholder-val="{{ true }}">
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px">
+      <div style="position:relative;flex:1;min-width:260px;max-width:560px">
+        <input value="{{ ovQ }}" onChange="{{ setOvQ }}" placeholder="Search samples, sample types or viruses (e.g. stool_S1, nasal, norovirus, Coronaviridae)" style="width:100%;padding:9px 34px 9px 12px;border:1px solid var(--line);border-radius:8px;background:var(--panel);font-size:13px;outline:none"></input>
+        <sc-if value="{{ hasOvQ }}" hint-placeholder-val="{{ false }}"><button onClick="{{ clearOvQ }}" title="Clear search" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);font-size:16px;line-height:1;color:var(--muted);padding:2px 4px" style-hover="color:var(--fg)">×</button></sc-if>
+      </div>
+      <span style="font-size:12px;color:var(--muted)">{{ ovQNote }}</span>
+      <span style="margin-left:auto;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted)">Sample summary <span title="{{ exSamples.title }}" style="display:inline-flex;border:1px solid var(--line);border-radius:6px;overflow:hidden;font-size:11.5px;font-weight:400;flex:none;background:var(--panel)"><button onClick="{{ exSamples.csv }}" style="padding:3px 9px" style-hover="background:var(--hi)">CSV</button><button onClick="{{ exSamples.tsv }}" style="padding:3px 9px;border-left:1px solid var(--line)" style-hover="background:var(--hi)">TSV</button><button onClick="{{ exSamples.png }}" style="padding:3px 9px;border-left:1px solid var(--line)" style-hover="background:var(--hi)">PNG</button></span></span>
+    </div>
+    <sc-if value="{{ fewSamples }}" hint-placeholder-val="{{ true }}">
+    <div ref="{{ ovCardsRef }}" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;margin-bottom:22px">
+      <sc-for list="{{ ovCards }}" as="s" hint-placeholder-count="4">
+        <div style="background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px 18px;display:flex;flex-direction:column;gap:12px">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px">
+            <button onClick="{{ s.click }}" style="font-family:var(--mono);font-size:14.5px;font-weight:600" style-hover="text-decoration:underline">{{ s.name }}</button>
+            <span style="font-size:11px;color:var(--muted)">{{ s.type }}</span>
+          </div>
+          <div style="font-family:var(--serif);font-size:15px;line-height:1.35;text-wrap:pretty">{{ s.story }}</div>
+          <div style="display:flex;flex-direction:column;gap:5px">
+            <div style="font-size:10.5px;color:var(--muted)">Top confident hits · bar = abundance (RPKMF)</div>
+            <sc-for list="{{ s.top }}" as="h" hint-placeholder-count="3">
+              <button onClick="{{ h.open }}" style="display:flex;flex-direction:column;gap:3px;width:100%;padding:3px 0" style-hover="text-decoration:underline">
+                <span style="font-size:12.5px;text-wrap:pretty">{{ h.name }}</span>
+                <span style="display:flex;align-items:center;gap:10px">
+                  <span style="font-size:10.5px;font-weight:600;padding:0 7px;border-radius:999px;border:1px {{ h.tierBs }} {{ h.tierBc }};background:{{ h.tierBg }};color:{{ h.tierFg }}">{{ h.tier }}</span>
+                  <span style="display:flex;align-items:center;gap:6px"><span style="height:6px;border-radius:3px;background:var(--abund);width:{{ h.bar }}"></span><span style="font-family:var(--mono);font-size:11px;color:var(--muted)">{{ h.rpkmf }}</span></span>
+                </span>
+              </button>
+            </sc-for>
+            <div style="font-size:11.5px;color:var(--muted)">{{ s.more }}</div>
+          </div>
+          <div style="border-top:1px solid var(--line2);padding-top:10px;display:flex;flex-direction:column;gap:5px">
+            <div style="font-size:11px;color:var(--muted);font-family:var(--mono)">{{ s.qcText }}</div>
+            <div style="position:relative;height:6px;background:var(--line2);border-radius:3px;overflow:hidden">
+              <div style="position:absolute;inset:0 auto 0 0;background:var(--line);width:{{ s.qHost }}"></div>
+              <div style="position:absolute;inset:0 auto 0 0;background:var(--fg);width:{{ s.qMap }}"></div>
+            </div>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+    </sc-if>
+    <sc-if value="{{ manySamplesOv }}" hint-placeholder-val="{{ false }}">
+      <div ref="{{ ovSamplesRef }}" style="background:var(--panel);border:1px solid var(--line);border-radius:10px;margin-bottom:22px;overflow-x:auto">
+        <div style="padding:14px 18px 12px;display:flex;flex-direction:column;gap:4px">
+          <div style="font-weight:600;font-size:14px">Samples at a glance</div>
+          <div style="font-family:var(--serif);font-size:15px;text-wrap:pretty">{{ runStory }}</div>
+        </div>
+        <div style="min-width:820px">
+          <div style="display:grid;grid-template-columns:150px 90px 250px 130px minmax(200px,1fr);gap:0 14px;padding:6px 18px;border-top:1px solid var(--line);border-bottom:1px solid var(--line);font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;font-weight:600">
+            <sc-for list="{{ ovCols }}" as="h" hint-placeholder-count="5"><button onClick="{{ h.click }}" style="color:{{ h.color }}" style-hover="color:var(--fg)">{{ h.label }}</button></sc-for>
+          </div>
+          <sc-for list="{{ sampleRows }}" as="r" hint-placeholder-count="10">
+            <div style="display:grid;grid-template-columns:150px 90px 250px 130px minmax(200px,1fr);gap:0 14px;align-items:center;padding:5px 18px;border-bottom:1px solid var(--line2)" style-hover="background:var(--hi)">
+              <button onClick="{{ r.click }}" title="Open this sample's detections" style="font-family:var(--mono);font-size:12px;font-weight:600" style-hover="text-decoration:underline">{{ r.name }}</button>
+              <span style="color:var(--muted);font-size:12px">{{ r.type }}</span>
+              <span style="display:flex;align-items:center;gap:8px"><span style="width:100px;height:6px;background:var(--line2);border-radius:3px;overflow:hidden;flex:none"><span style="display:block;height:100%;background:var(--fg);opacity:.7;width:{{ r.fracW }}"></span></span><span style="font-family:var(--mono);font-size:11.5px">{{ r.frac }}</span><span style="font-family:var(--mono);font-size:11px;color:var(--muted)">{{ r.nonhost }}</span></span>
+              <span style="font-family:var(--mono);font-size:12px">{{ r.hits }}</span>
+              <span style="display:flex;gap:8px;align-items:baseline;min-width:0"><button onClick="{{ r.openTop }}" style="font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" style-hover="text-decoration:underline">{{ r.top }}</button><span style="color:var(--muted);font-size:11.5px;flex:none">{{ r.top2 }}</span></span>
+            </div>
+          </sc-for>
+        </div>
+        <sc-if value="{{ sampleMore }}" hint-placeholder-val="{{ false }}"><button onClick="{{ showMoreSamples }}" style="padding:10px 18px;color:var(--accent);font-size:12.5px">{{ sampleMoreLabel }}</button></sc-if>
+      </div>
+    </sc-if>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:18px;align-items:start">
+      <div ref="{{ ovSharedRef }}" style="background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px 18px;min-width:0">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px"><div style="font-weight:600;font-size:14px">{{ sharedTitle }}</div><div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><div style="font-size:11.5px;color:var(--muted)">{{ sharedNote }}</div><span title="{{ exShared.title }}" style="display:inline-flex;border:1px solid var(--line);border-radius:6px;overflow:hidden;font-size:11.5px;font-weight:400;flex:none;background:var(--panel)"><button onClick="{{ exShared.csv }}" style="padding:3px 9px" style-hover="background:var(--hi)">CSV</button><button onClick="{{ exShared.tsv }}" style="padding:3px 9px;border-left:1px solid var(--line)" style-hover="background:var(--hi)">TSV</button><button onClick="{{ exShared.png }}" style="padding:3px 9px;border-left:1px solid var(--line)" style-hover="background:var(--hi)">PNG</button></span></div></div>
+        <div style="overflow-x:auto">
+          <div style="display:grid;grid-template-columns:200px 76px 1fr;column-gap:14px;font-size:10px;color:var(--muted);margin-bottom:6px">
+            <span></span><span>found in</span>
+            <div style="display:flex;gap:4px"><sc-for list="{{ sharedCols }}" as="c" hint-placeholder-count="4"><span style="width:{{ c.w }};flex:none;text-align:center;font-family:var(--mono);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ c.label }}</span></sc-for></div>
+          </div>
+          <sc-for list="{{ shared }}" as="r" hint-placeholder-count="5">
+            <button onClick="{{ r.open }}" style="display:grid;grid-template-columns:200px 76px 1fr;column-gap:14px;align-items:center;padding:2px 0;width:100%" style-hover="background:var(--hi)">
+              <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:12.5px">{{ r.name }}</span>
+              <span style="font-family:var(--mono);font-size:11.5px;font-variant-numeric:tabular-nums">{{ r.prev }}</span>
+              <span style="display:flex;gap:4px"><sc-for list="{{ r.cells }}" as="c" hint-placeholder-count="4"><span title="{{ c.title }}" style="width:{{ c.w }};flex:none;height:16px;border-radius:3px;background:{{ c.bg }};display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:9.5px;color:{{ c.fg }}">{{ c.text }}</span></sc-for></span>
+            </button>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- DETECTIONS TABLE -->
+  <sc-if value="{{ isTable }}" hint-placeholder-val="{{ false }}">
+    <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-bottom:12px;font-size:12px">
+      <span style="display:flex;align-items:center;gap:6px;color:var(--muted)">Group by<span style="display:inline-flex;border:1px solid var(--line);border-radius:6px;overflow:hidden"><sc-for list="{{ groupOpts }}" as="o" hint-placeholder-count="2"><button onClick="{{ o.click }}" style="padding:4px 11px;background:{{ o.bg }};color:{{ o.fg }}">{{ o.label }}</button></sc-for></span></span>
+      <button onClick="{{ toggleShared }}" style="padding:4px 10px;border:1px solid {{ sharedBorder }};border-radius:6px;background:{{ sharedBg }}">Only viruses in ≥ 2 samples</button>
+      <button onClick="{{ toggleFlagOnly }}" title="Calls whose numbers disagree: identity below the species threshold (possible new variant), low geNomad score despite good coverage, or a virus that is unexpected for the sample (possible contamination)" style="padding:4px 10px;border:1px solid {{ flagBorder }};border-radius:6px;background:{{ flagBg }}">{{ flagLabel }}</button>
+      <button onClick="{{ expandAll }}" style="color:var(--accent)">{{ expandLabel }}</button>
+      <span style="margin-left:auto;color:var(--muted)">{{ tableCount }}</span>
+      <button onClick="{{ exportAllTsv }}" style="padding:4px 10px;border:1px solid var(--line);border-radius:6px;background:var(--panel)">TSV</button>
+    </div>
+    <div style="background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow-x:auto">
+      <div style="min-width:1110px;padding-bottom:120px;margin-bottom:-120px">
+      <div style="display:grid;grid-template-columns:minmax(220px,2fr) 100px 80px 150px 230px 160px 110px;gap:0 14px;padding:8px 16px;border-bottom:1px solid var(--line);font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;font-weight:600">
+        <sc-for list="{{ cols }}" as="h" hint-placeholder-count="7">
+          <button onClick="{{ h.click }}" style="text-align:{{ h.align }};color:{{ h.color }}" style-hover="color:var(--fg)">{{ h.label }}</button>
+        </sc-for>
+      </div>
+      <sc-for list="{{ tableGroups }}" as="g" hint-placeholder-count="2">
+        <div style="display:flex;align-items:baseline;gap:12px;padding:9px 16px 6px;background:var(--bg);border-bottom:1px solid var(--line2);border-top:1px solid var(--line2)">
+          <button onClick="{{ g.click }}" style="font-family:{{ g.font }};font-weight:600;font-size:13px" style-hover="text-decoration:underline">{{ g.sample }}</button>
+          <span style="font-size:11.5px;color:var(--muted)">{{ g.summary }}</span>
+        </div>
+        <sc-for list="{{ g.rows }}" as="r" hint-placeholder-count="4">
+          <div style="display:grid;grid-template-columns:minmax(220px,2fr) 100px 80px 150px 230px 160px 110px;gap:0 14px;align-items:center;padding:7px 16px;border-bottom:1px solid var(--line2);background:{{ r.bg }}" style-hover="background:var(--hi)">
+            <div style="display:flex;flex-direction:column;gap:2px;min-width:0">
+              <button onClick="{{ r.open }}" style="font-family:{{ r.font }};font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" style-hover="text-decoration:underline">{{ r.name }}</button>
+              <div style="display:flex;align-items:center;gap:7px;font-size:11.5px;color:var(--muted);min-width:0">
+                <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.lineage }}</span>
+                <sc-if value="{{ r.multi }}" hint-placeholder-val="{{ false }}">
+                  <button onClick="{{ r.toggle }}" style="flex:none;font-size:11px;color:var(--accent);padding:0 6px;border:1px solid var(--line);border-radius:4px">{{ r.segLabel }}</button>
+                </sc-if>
+                <sc-if value="{{ r.hasFlag }}" hint-placeholder-val="{{ false }}"><span title="{{ r.flagWhy }}" style="flex:none;font-size:9.5px;font-weight:700;letter-spacing:.04em;padding:0 5px;border-radius:3px;border:1px solid var(--attn);color:var(--attn);cursor:help">{{ r.flagKind }}</span></sc-if>
+              </div>
+            </div>
+            <div onMouseEnter="{{ r.tipOn }}" onMouseLeave="{{ r.tipOff }}" style="position:relative;justify-self:start">
+              <span style="display:inline-block;font-size:11px;font-weight:600;padding:2px 9px;border-radius:999px;border:1px {{ r.tierBs }} {{ r.tierBc }};background:{{ r.tierBg }};color:{{ r.tierFg }};white-space:nowrap;cursor:help">{{ r.tier }}</span>
+              <sc-if value="{{ r.tipOpen }}" hint-placeholder-val="{{ false }}">
+                <div style="position:absolute;top:26px;left:0;z-index:20;width:264px;background:var(--panel);border:1px solid var(--line);border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.14);padding:10px 12px;display:flex;flex-direction:column;gap:5px;font-size:11.5px">
+                  <div style="font-weight:600;margin-bottom:2px">{{ r.tipTitle }}</div>
+                  <sc-for list="{{ r.checks }}" as="c" hint-placeholder-count="4">
+                    <div style="display:grid;grid-template-columns:14px 1fr auto;gap:6px;align-items:baseline"><span style="font-weight:700;color:{{ c.mc }}">{{ c.mark }}</span><span>{{ c.label }}</span><span style="font-family:var(--mono);color:var(--muted)">{{ c.val }}</span></div>
+                  </sc-for>
+                  <div style="color:var(--muted);font-size:10.5px;border-top:1px solid var(--line2);padding-top:6px;margin-top:2px;text-wrap:pretty">High = all four. Medium = ≥ 40% covered and ≥ 50 reads. Low = ≥ 10 reads. Fewer = trace.</div>
+                </div>
+              </sc-if>
+            </div>
+            <div style="font-family:var(--mono);font-size:12px;text-align:right;font-variant-numeric:tabular-nums">{{ r.reads }}</div>
+            <div style="display:flex;flex-direction:column;gap:3px">
+              <span style="font-family:var(--mono);font-size:12px;font-variant-numeric:tabular-nums">{{ r.rpkmf }}</span>
+              <span style="height:5px;background:var(--line2);border-radius:3px;overflow:hidden;display:block"><span style="display:block;height:100%;border-radius:3px;background:var(--abund);width:{{ r.bar }}"></span></span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <svg width="170" height="36" viewBox="0 0 170 36" style="flex:none;display:block">
+                <rect x="0" y="0" width="170" height="36" rx="3" fill="var(--line2)"></rect>
+                <path d="{{ r.sparkFill }}" fill="var(--fg)" opacity="0.14"></path>
+                <path d="{{ r.sparkLine }}" fill="none" stroke="var(--fg)" stroke-width="1.1" opacity="0.8"></path>
+                <path d="{{ r.sparkSep }}" fill="none" stroke="var(--panel)" stroke-width="1.5"></path>
+              </svg>
+              <span style="font-family:var(--mono);font-size:12px;font-variant-numeric:tabular-nums">{{ r.pct }}</span>
+            </div>
+            <div style="font-size:12px;font-family:var(--mono);font-variant-numeric:tabular-nums;display:flex;flex-direction:column;gap:1px">
+              <span><span style="color:var(--muted)">read </span>{{ r.rid }}</span>
+              <span style="display:flex;gap:6px;align-items:center"><span><span style="color:var(--muted)">cons </span>{{ r.cid }}</span><sc-if value="{{ r.adj }}" hint-placeholder-val="{{ false }}"><span title="Consensus identity below the species threshold: taxonomy downgraded to genus. Possibly a new variant." style="font-family:var(--sans);font-size:9.5px;font-weight:700;padding:0 5px;border-radius:3px;border:1px solid var(--attn);color:var(--attn)">DIVERGENT</span></sc-if></span>
+            </div>
+            <div style="font-size:12px;font-family:var(--mono);font-variant-numeric:tabular-nums"><span>{{ r.gv }}</span><span style="color:var(--muted);font-family:var(--sans);font-size:11px"> · {{ r.hall }} hallmark</span></div>
+          </div>
+          <sc-if value="{{ r.expanded }}" hint-placeholder-val="{{ false }}">
+            <sc-for list="{{ r.segRows }}" as="s" hint-placeholder-count="3">
+              <div style="display:grid;grid-template-columns:minmax(220px,2fr) 100px 80px 150px 230px 160px 110px;gap:0 14px;align-items:center;padding:4px 16px 4px 40px;border-bottom:1px solid var(--line2);background:var(--bg);font-size:12px">
+                <div style="display:flex;gap:10px;align-items:baseline"><span style="font-family:var(--mono);font-weight:600">{{ s.label }}</span><span style="color:var(--muted)">{{ s.gene }}</span><span style="font-family:var(--mono);color:var(--muted);font-size:11px">{{ s.acc }}</span></div>
+                <div style="color:var(--muted);font-family:var(--mono)">{{ s.len }}</div>
+                <div style="font-family:var(--mono);text-align:right">{{ s.reads }}</div>
+                <div style="font-family:var(--mono);color:var(--muted)">{{ s.depth }}</div>
+                <div style="display:flex;align-items:center;gap:8px">
+                  <svg width="170" height="22" viewBox="0 0 170 22" style="display:block"><rect x="0" y="0" width="170" height="22" rx="3" fill="var(--line2)"></rect><path d="{{ s.sparkFill }}" fill="var(--fg)" opacity="0.14"></path><path d="{{ s.sparkLine }}" fill="none" stroke="var(--fg)" stroke-width="1" opacity="0.8"></path></svg>
+                  <span style="font-family:var(--mono)">{{ s.pct }}</span>
+                </div>
+                <div></div><div></div>
+              </div>
+            </sc-for>
+          </sc-if>
+        </sc-for>
+        <sc-if value="{{ g.hasMore }}" hint-placeholder-val="{{ false }}"><button onClick="{{ g.more }}" style="display:block;padding:6px 16px 8px 16px;font-size:12px;color:var(--accent);border-bottom:1px solid var(--line2);width:100%">{{ g.moreLabel }}</button></sc-if>
+      </sc-for>
+      <sc-if value="{{ moreGroups }}" hint-placeholder-val="{{ false }}"><button onClick="{{ showMoreGroups }}" style="display:block;padding:12px 16px;font-size:12.5px;color:var(--accent);width:100%">{{ moreGroupsLabel }}</button></sc-if>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- TREE -->
+  <sc-if value="{{ isTree }}" hint-placeholder-val="{{ false }}">
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px;font-size:12px">
+      <span style="display:inline-flex;border:1px solid var(--line);border-radius:6px;overflow:hidden">
+        <sc-for list="{{ layouts }}" as="l" hint-placeholder-count="3">
+          <button onClick="{{ l.click }}" style="padding:5px 12px;background:{{ l.bg }};color:{{ l.fg }};font-weight:{{ l.weight }};border-left:1px solid {{ l.sep }}">{{ l.label }}</button>
+        </sc-for>
+      </span>
+      <label style="display:flex;align-items:center;gap:6px;color:var(--muted)">{{ valueLabel }}</label>
+      <label style="display:flex;align-items:center;gap:6px;color:var(--muted)">
+        <select value="{{ treeValue }}" onChange="{{ setTreeValue }}" style="padding:4px 8px;border:1px solid var(--line);border-radius:6px;background:var(--panel)">
+          <option value="rpkmf">abundance (RPKMF, log)</option><option value="reads">aligned reads (log)</option><option value="pct">genome covered (%)</option>
+        </select>
+      </label>
+      <sc-if value="{{ notComp }}" hint-placeholder-val="{{ true }}">
+        <button onClick="{{ collapseAll }}" style="padding:4px 10px;border:1px solid var(--line);border-radius:6px;background:var(--panel)">{{ collapseLabel }}</button>
+      </sc-if>
+      <sc-if value="{{ notComp }}" hint-placeholder-val="{{ true }}"><label style="display:flex;align-items:center;gap:6px;color:var(--muted)">Samples as
+        <select value="{{ treeCols }}" onChange="{{ setTreeCols }}" style="padding:4px 8px;border:1px solid var(--line);border-radius:6px;background:var(--panel)"><option value="auto">auto</option><option value="sample">one track per sample</option><option value="type">one track per sample type (mean)</option></select>
+      </label></sc-if>
+      <span style="color:var(--muted)">{{ ringLegend }}</span>
+      <button onClick="{{ toggleColors }}" style="padding:4px 10px;border:1px solid var(--line);border-radius:6px;background:{{ colorBtnBg }};display:flex;align-items:center;gap:6px" style-hover="border-color:var(--fg)"><span style="display:flex"><span style="width:8px;height:8px;border-radius:2px;background:#2f6db5"></span><span style="width:8px;height:8px;border-radius:2px;background:#d9822b"></span><span style="width:8px;height:8px;border-radius:2px;background:#3a9a6e"></span></span>{{ colorBtnLabel }}</button>
+      <span style="margin-left:auto;color:var(--muted)">{{ treeNote }}</span>
+      <span style="display:inline-flex;border:1px solid var(--line);border-radius:6px;overflow:hidden">
+        <button onClick="{{ exportTreeSvg }}" style="padding:4px 10px;background:var(--panel)">SVG</button>
+        <button onClick="{{ exportTreePng }}" style="padding:4px 10px;background:var(--panel);border-left:1px solid var(--line)">PNG</button>
+      </span>
+      <div style="flex-basis:100%;display:flex;gap:10px 18px;align-items:center;flex-wrap:wrap;padding:8px 12px;border:1px solid var(--line2);border-radius:8px;background:var(--panel)">
+        <span style="display:flex;align-items:center;gap:8px;color:var(--muted)">Mouse
+          <span style="display:inline-flex;border:1px solid var(--line);border-radius:6px;overflow:hidden">
+            <sc-for list="{{ tools }}" as="tl" hint-placeholder-count="3"><button onClick="{{ tl.click }}" title="{{ tl.title }}" style="padding:4px 11px;background:{{ tl.bg }};color:{{ tl.fg }};border-left:1px solid {{ tl.sep }}">{{ tl.label }}</button></sc-for>
+          </span>
+        </span>
+        <span style="display:flex;align-items:center;gap:6px;color:var(--muted)">Zoom
+          <button onClick="{{ zoomOut }}" title="Zoom out" style="width:28px;height:28px;border:1px solid var(--line);border-radius:6px;text-align:center;font-size:15px;background:var(--panel)" style-hover="border-color:var(--fg)">−</button>
+          <button onClick="{{ zoomIn }}" title="Zoom in" style="width:28px;height:28px;border:1px solid var(--line);border-radius:6px;text-align:center;font-size:15px;background:var(--panel)" style-hover="border-color:var(--fg)">+</button>
+          <button onClick="{{ resetZoom }}" style="margin-left:4px;color:var(--accent)">Reset view</button>
+        </span>
+        <sc-if value="{{ isRadial }}" hint-placeholder-val="{{ false }}">
+          <span style="display:flex;align-items:center;gap:6px;color:var(--muted)">Rotate
+            <button onClick="{{ rotL }}" title="Rotate 15° anticlockwise" style="width:28px;height:28px;border:1px solid var(--line);border-radius:6px;text-align:center;font-size:15px;background:var(--panel)" style-hover="border-color:var(--fg)">↺</button>
+            <input type="range" min="0" max="359" step="1" value="{{ treeRot }}" onChange="{{ setTreeRot }}" style="width:120px;accent-color:var(--fg)"></input>
+            <button onClick="{{ rotR }}" title="Rotate 15° clockwise" style="width:28px;height:28px;border:1px solid var(--line);border-radius:6px;text-align:center;font-size:15px;background:var(--panel)" style-hover="border-color:var(--fg)">↻</button>
+            <span style="font-family:var(--mono);font-size:11.5px;color:var(--fg);width:34px">{{ rotLabel }}</span>
+          </span>
+          <label style="display:flex;align-items:center;gap:6px;color:var(--muted)">Focus on family
+            <select value="{{ zoomFam }}" onChange="{{ setZoomFam }}" style="padding:4px 8px;border:1px solid var(--line);border-radius:6px;background:var(--panel)"><option value="">whole tree</option><sc-for list="{{ zoomFamOpts }}" as="o" hint-placeholder-count="6"><option value="{{ o.v }}">{{ o.label }}</option></sc-for></select>
+          </label>
+        </sc-if>
+        <sc-if value="{{ isComp }}" hint-placeholder-val="{{ false }}">
+          <label style="display:flex;align-items:center;gap:6px;color:var(--muted)">Samples shown
+            <select value="{{ compTop }}" onChange="{{ setCompTop }}" style="padding:4px 8px;border:1px solid var(--line);border-radius:6px;background:var(--panel)"><option value="auto">auto (30 if more)</option><option value="10">10</option><option value="20">20</option><option value="30">30</option><option value="50">50</option><option value="all">all</option></select>
+          </label>
+          <label style="display:flex;align-items:center;gap:6px;color:var(--muted)">Sort samples by
+            <select value="{{ compSort }}" onChange="{{ setCompSort }}" style="padding:4px 8px;border:1px solid var(--line);border-radius:6px;background:var(--panel)"><option value="type">sample type</option><option value="name">name</option><option value="total">total viral signal</option><sc-for list="{{ compSortFams }}" as="o" hint-placeholder-count="6"><option value="{{ o.v }}">{{ o.label }}</option></sc-for></select>
+          </label>
+        </sc-if>
+        <span style="color:var(--muted);font-size:11.5px;margin-left:auto">{{ toolHint }}</span>
+      </div>
+    </div>
+    <sc-if value="{{ colorOpen }}" hint-placeholder-val="{{ false }}">
+      <div style="background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin-bottom:12px;display:flex;flex-direction:column;gap:14px">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap">
+          <div style="display:flex;flex-direction:column;gap:2px"><span style="font-weight:600;font-size:13.5px">Family colours</span><span style="font-size:11.5px;color:var(--muted)">Used in the tree, the heatmap and the composition view. Saved in this browser.</span></div>
+          <div style="display:flex;gap:12px;font-size:12px"><button onClick="{{ resetColors }}" style="color:var(--accent)">Reset all</button><button onClick="{{ toggleColors }}" style="color:var(--muted)">Close</button></div>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+          <span style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-weight:600;margin-right:4px">Start from a palette</span>
+          <sc-for list="{{ palOptions }}" as="p" hint-placeholder-count="3">
+            <button onClick="{{ p.click }}" style="display:flex;align-items:center;gap:8px;padding:4px 10px;border:1px solid {{ p.border }};border-radius:6px;font-size:12px;font-weight:{{ p.weight }}" style-hover="border-color:var(--fg)"><span style="display:flex;gap:1px"><sc-for list="{{ p.sw }}" as="w" hint-placeholder-count="8"><span style="width:9px;height:14px;background:{{ w.bg }}"></span></sc-for></span>{{ p.name }}</button>
+          </sc-for>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:6px 18px">
+          <sc-for list="{{ famColorRows }}" as="c" hint-placeholder-count="8">
+            <div style="display:flex;flex-direction:column;gap:6px;padding:4px 0">
+              <div style="display:flex;align-items:center;gap:9px">
+                <button onClick="{{ c.edit }}" title="Pick a colour" style="width:22px;height:22px;border-radius:5px;background:{{ c.color }};border:2px solid {{ c.ring }};flex:none"></button>
+                <span style="flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:12.5px">{{ c.name }} <span style="color:var(--muted);font-size:11px">{{ c.n }}</span></span>
+                <span style="font-size:10.5px;color:var(--muted)">{{ c.note }}</span>
+                <input value="{{ c.hex }}" onChange="{{ c.onHex }}" spellcheck="false" style="width:78px;padding:3px 6px;border:1px solid var(--line);border-radius:5px;background:var(--bg);font-family:var(--mono);font-size:11.5px;outline:none"></input>
+              </div>
+              <sc-if value="{{ c.editing }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center;padding:6px 0 4px 31px">
+                  <sc-for list="{{ c.swatches }}" as="w" hint-placeholder-count="12"><button onClick="{{ w.click }}" style="width:18px;height:18px;border-radius:4px;background:{{ w.bg }};outline:2px solid {{ w.ring }};outline-offset:1px"></button></sc-for>
+                  <label style="display:flex;align-items:center;gap:5px;margin-left:6px;font-size:11px;color:var(--muted)">any<input type="color" value="{{ c.color }}" onChange="{{ c.onPick }}" style="width:26px;height:20px;padding:0;border:1px solid var(--line);border-radius:4px;background:none"></input></label>
+                  <button onClick="{{ c.clear }}" style="margin-left:auto;font-size:11px;color:var(--accent)">Use default</button>
+                </div>
+              </sc-if>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </sc-if>
+    <div style="position:relative;background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:hidden">
+      <div ref="{{ treeRef }}" style="width:100%;min-height:560px"></div>
+      <div ref="{{ tipRef }}" style="position:absolute;display:none;pointer-events:none;z-index:5;max-width:280px;background:var(--fg);color:var(--bg);padding:8px 10px;border-radius:6px;font-size:11.5px;line-height:1.4;box-shadow:0 4px 14px rgba(0,0,0,.18)"></div>
+    </div>
+    <div style="font-size:11.5px;color:var(--muted);margin-top:8px;text-wrap:pretty">{{ treeFoot }}</div>
+  </sc-if>
+
+  <!-- HEATMAP -->
+  <sc-if value="{{ isHeat }}" hint-placeholder-val="{{ false }}">
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px;font-size:12px">
+      <label style="display:flex;align-items:center;gap:6px;color:var(--muted)">Cell value
+        <select value="{{ treeValue }}" onChange="{{ setTreeValue }}" style="padding:4px 8px;border:1px solid var(--line);border-radius:6px;background:var(--panel)">
+          <option value="rpkmf">abundance (RPKMF, log)</option><option value="reads">aligned reads (log)</option><option value="pct">genome covered (%)</option>
+        </select>
+      </label>
+      <span style="display:flex;align-items:center;gap:6px;color:var(--muted)"><span style="width:60px;height:8px;border-radius:4px;background:linear-gradient(90deg,{{ seqLo }},{{ seqHi }})"></span>{{ heatNote }}</span>
+      <label style="display:flex;align-items:center;gap:6px;color:var(--muted)">Rows
+        <select value="{{ heatTop }}" onChange="{{ setHeatTop }}" style="padding:4px 8px;border:1px solid var(--line);border-radius:6px;background:var(--panel)"><option value="auto">auto (top 50 if more than 60)</option><option value="30">top 30 by prevalence</option><option value="50">top 50 by prevalence</option><option value="100">top 100 by prevalence</option><option value="all">all viruses</option></select>
+      </label>
+      <label style="display:flex;align-items:center;gap:6px;color:var(--muted)">Columns
+        <select value="{{ heatCols }}" onChange="{{ setHeatCols }}" style="padding:4px 8px;border:1px solid var(--line);border-radius:6px;background:var(--panel)"><option value="cluster">clustered by similarity</option><option value="type">grouped by sample type</option></select>
+      </label>
+      <sc-if value="{{ showTypeLegend }}" hint-placeholder-val="{{ false }}"><span style="display:flex;gap:8px;align-items:center;color:var(--muted)">type strip<sc-for list="{{ typeLegend }}" as="tl" hint-placeholder-count="3"><span style="display:flex;align-items:center;gap:4px"><span style="width:12px;height:6px;background:{{ tl.c }}"></span>{{ tl.name }}</span></sc-for></span></sc-if>
+      <span style="margin-left:auto"></span>
+      <span style="display:inline-flex;border:1px solid var(--line);border-radius:6px;overflow:hidden">
+        <button onClick="{{ exportHeatSvg }}" style="padding:4px 10px;background:var(--panel)">SVG</button>
+        <button onClick="{{ exportHeatPng }}" style="padding:4px 10px;background:var(--panel);border-left:1px solid var(--line)">PNG</button>
+        <button onClick="{{ exportHeatTsv }}" style="padding:4px 10px;background:var(--panel);border-left:1px solid var(--line)">TSV</button>
+      </span>
+    </div>
+    <div style="position:relative;background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:auto">
+      <div ref="{{ heatRef }}" style="min-height:400px"></div>
+      <div ref="{{ tipRef2 }}" style="position:absolute;display:none;pointer-events:none;z-index:5;max-width:280px;background:var(--fg);color:var(--bg);padding:8px 10px;border-radius:6px;font-size:11.5px;line-height:1.4;box-shadow:0 4px 14px rgba(0,0,0,.18)"></div>
+    </div>
+  </sc-if>
+
+    </main>
+  </div>
+  <!-- GENOME DRAWER -->
+  <sc-if value="{{ drawerOpen }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ closeDrawer }}" style="position:fixed;inset:0;background:rgba(0,0,0,.18);z-index:40"></div>
+    <div style="position:fixed;top:0;right:0;bottom:0;width:min(620px,100vw);background:var(--panel);border-left:1px solid var(--line);box-shadow:-12px 0 40px rgba(0,0,0,.14);z-index:50;overflow:auto;padding:22px 26px 40px;display:flex;flex-direction:column;gap:16px;animation:fadein .18s ease-out;font-size:13px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px">
+        <div style="display:flex;flex-direction:column;gap:4px;min-width:0">
+          <div style="display:flex;align-items:center;gap:8px;font-size:11.5px;color:var(--muted)">{{ gv.family }} · <span style="font-family:var(--mono)">{{ gv.acc }}</span> · {{ gv.len }}</div>
+          <div style="font-family:var(--serif);font-size:22px;font-weight:600;line-height:1.15">{{ gv.name }}</div>
+        </div>
+        <button onClick="{{ closeDrawer }}" style="font-size:20px;line-height:1;color:var(--muted);padding:4px 8px" style-hover="color:var(--fg)">×</button>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center;font-size:11.5px">
+        <sc-for list="{{ gv.lineage }}" as="l" hint-placeholder-count="5">
+          <span style="display:flex;align-items:baseline;gap:4px;padding:2px 8px;border-radius:4px;background:var(--bg);border:1px solid var(--line2)"><span style="color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.05em">{{ l.rank }}</span><span style="font-weight:{{ l.weight }}">{{ l.name }}</span></span>
+        </sc-for>
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+        <span style="font-size:11.5px;color:var(--muted);margin-right:4px">Detected in</span>
+        <sc-for list="{{ gv.samples }}" as="s" hint-placeholder-count="2">
+          <button onClick="{{ s.click }}" style="display:flex;align-items:center;gap:6px;padding:3px 9px;border-radius:999px;border:1px solid {{ s.border }};background:{{ s.bg }};font-size:12px"><span style="font-family:var(--mono);font-size:11.5px">{{ s.name }}</span><span style="font-size:10.5px;font-weight:600;padding:0 6px;border-radius:999px;background:{{ s.tierBg }};color:{{ s.tierFg }}">{{ s.tier }}</span></button>
+        </sc-for>
+        <sc-if value="{{ gv.canCompare }}" hint-placeholder-val="{{ false }}">
+          <button onClick="{{ toggleCompare }}" style="margin-left:auto;padding:3px 10px;border:1px solid {{ compareBorder }};border-radius:6px;background:{{ compareBg }};font-size:12px">Compare samples</button>
+        </sc-if>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:10px">
+        <sc-for list="{{ gv.stats }}" as="st" hint-placeholder-count="6">
+          <div style="display:flex;flex-direction:column;gap:2px;padding:8px 10px;background:var(--bg);border-radius:6px"><span style="font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em">{{ st.k }}</span><span style="font-family:var(--mono);font-size:15px;font-weight:600;color:{{ st.color }}">{{ st.v }}</span><span style="font-size:11px;color:var(--muted)">{{ st.sub }}</span></div>
+        </sc-for>
+      </div>
+      <div style="display:flex;gap:14px;align-items:center;padding:10px 12px;border:1px solid var(--line2);border-radius:8px;font-size:12px">
+        <span style="font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;flex:none">geNomad</span>
+        <span style="font-family:var(--mono);font-size:15px;font-weight:600;color:{{ gv.gvColor }}">{{ gv.gvScore }}</span>
+        <span style="height:6px;flex:1;background:var(--line2);border-radius:3px;overflow:hidden"><span style="display:block;height:100%;background:{{ gv.gvColor }};width:{{ gv.gvBar }}"></span></span>
+        <span style="color:var(--muted)">{{ gv.gvText }}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:baseline">
+        <div style="font-weight:600;font-size:13.5px">{{ gv.covTitle }}</div>
+        <span style="display:inline-flex;border:1px solid var(--line);border-radius:6px;overflow:hidden;font-size:11.5px">
+          <button onClick="{{ exportGenSvg }}" style="padding:3px 9px">SVG</button><button onClick="{{ exportGenPng }}" style="padding:3px 9px;border-left:1px solid var(--line)">PNG</button>
+        </span>
+      </div>
+      <div ref="{{ genRef }}" style="display:grid;grid-template-columns:{{ gv.gridCols }};gap:14px"></div>
+      <div style="font-size:11.5px;color:var(--muted)">Depth on a symlog axis, 100 windows per segment. Arrows are predicted ORFs: forward strand above the line, reverse below; hover for coordinates. Dashed outline marks a partial ORF.</div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;light&quot;,&quot;options&quot;:[&quot;light&quot;,&quot;dark&quot;],&quot;tsType&quot;:&quot;'light'|'dark'&quot;,&quot;section&quot;:&quot;Appearance&quot;},&quot;palette&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;mgviz&quot;,&quot;options&quot;:[&quot;mgviz&quot;,&quot;okabe-ito&quot;,&quot;tol-muted&quot;],&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Appearance&quot;},&quot;dataScale&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;4 samples / 18 viruses&quot;,&quot;options&quot;:[&quot;4 samples / 18 viruses&quot;,&quot;40 samples / 200 viruses&quot;,&quot;100 samples / 200 viruses&quot;],&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Demo data&quot;},&quot;embed&quot;:{&quot;editor&quot;:null,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;initialTab&quot;:{&quot;editor&quot;:null,&quot;default&quot;:&quot;overview&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;initialLayout&quot;:{&quot;editor&quot;:null,&quot;default&quot;:&quot;radial&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;scale&quot;:{&quot;editor&quot;:null,&quot;default&quot;:&quot;small&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+const R=seed=>{let a=seed>>>0;return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}};
+const FAM={Orthomyxoviridae:['Riboviria','Articulavirales'],Caliciviridae:['Riboviria','Picornavirales'],Sedoreoviridae:['Riboviria','Reovirales'],Coronaviridae:['Riboviria','Nidovirales'],Picornaviridae:['Riboviria','Picornavirales'],Adenoviridae:['Varidnaviria','Rowavirales'],Circoviridae:['Monodnaviria','Cirlivirales'],Hepadnaviridae:['Riboviria','Blubervirales'],Anelloviridae:['Anelloviria','Unassigned'],Parvoviridae:['Monodnaviria','Piccovirales'],Solemoviridae:['Riboviria','Sobelivirales'],Virgaviridae:['Riboviria','Martellivirales'],Astroviridae:['Riboviria','Stellavirales'],Pneumoviridae:['Riboviria','Mononegavirales'],Intestiviridae:['Duplodnaviria','Crassvirales'],Paramyxoviridae:['Riboviria','Mononegavirales'],Polyomaviridae:['Monodnaviria','Sepolyvirales'],Papillomaviridae:['Monodnaviria','Zurhausenvirales'],Orthoherpesviridae:['Duplodnaviria','Herpesvirales'],Microviridae:['Monodnaviria','Petitvirales'],Tombusviridae:['Riboviria','Tolivirales'],Genomoviridae:['Monodnaviria','Geplafuvirales']};
+const CAT=[
+['Picornaviridae','Enterovirus','Enterovirus A',['Enterovirus A71','Coxsackievirus A16','Coxsackievirus A6'],7400,'snw',.10,5.5,['s',4,13,.8]],
+['Picornaviridae','Enterovirus','Enterovirus B',['Coxsackievirus B3','Echovirus 30','Echovirus 11'],7400,'sw',.07,5],
+['Picornaviridae','Enterovirus','Enterovirus C',['Poliovirus 1 (Sabin-like)','Coxsackievirus A24'],7440,'ws',.05,4.5],
+['Picornaviridae','Enterovirus','Rhinovirus B',['Rhinovirus B14','Rhinovirus B70'],7200,'nc',.14,6],
+['Picornaviridae','Enterovirus','Rhinovirus C',['Rhinovirus C2','Rhinovirus C15','Rhinovirus C43'],7100,'nc',.12,6.2],
+['Picornaviridae','Parechovirus','Parechovirus A',['Parechovirus A1','Parechovirus A3'],7350,'sw',.09,5],
+['Picornaviridae','Kobuvirus','Aichivirus A',['Aichi virus 1'],8250,'ws',.18,4.5],
+['Picornaviridae','Hepatovirus','Hepatovirus A',['Hepatitis A virus IA'],7480,'ws',.05,4],
+['Picornaviridae','Cardiovirus','Cardiovirus B',['Saffold virus 2'],8100,'ns',.05,4],
+['Caliciviridae','Norovirus','Norwalk virus',['Norovirus GII.17','Norovirus GII.2','Norovirus GII.6'],7550,'sw',.12,7,['s',14,27,.75]],
+['Caliciviridae','Norovirus','Norwalk virus',['Norovirus GI.3','Norovirus GI.6'],7600,'ws',.10,5.5],
+['Caliciviridae','Sapovirus','Sapporo virus',['Sapovirus GII.1','Sapovirus GIV.1'],7450,'sw',.08,5],
+['Coronaviridae','Betacoronavirus','SARS-related coronavirus',['SARS-CoV-2 KP.3','SARS-CoV-2 XBB.1.5'],29900,'nwc',.16,7,['w',0,9,.9]],
+['Coronaviridae','Betacoronavirus','Betacoronavirus 1',['Human coronavirus HKU1'],29900,'nc',.08,5.5],
+['Coronaviridae','Alphacoronavirus','Human coronavirus 229E',['Human coronavirus 229E'],27300,'nc',.08,5.5],
+['Coronaviridae','Alphacoronavirus','Human coronavirus NL63',['Human coronavirus NL63'],27550,'nc',.09,5.5],
+['Orthomyxoviridae','Alphainfluenzavirus','Influenza A virus',['Influenza A virus (H1N1)pdm09'],13600,'ncw',.12,7,['n',6,17,.7]],
+['Orthomyxoviridae','Alphainfluenzavirus','Influenza A virus',['Influenza A virus (H5N1) 2.3.4.4b'],13600,'w',.0,4.5,['w',10,13,.9]],
+['Orthomyxoviridae','Betainfluenzavirus','Influenza B virus',['Influenza B virus (Victoria)'],14500,'nc',.10,6.5],
+['Pneumoviridae','Orthopneumovirus','Orthopneumovirus hominis',['Respiratory syncytial virus B'],15200,'ncw',.12,6.5],
+['Pneumoviridae','Metapneumovirus','Human metapneumovirus',['Human metapneumovirus A2','Human metapneumovirus B1'],13300,'nc',.08,6],
+['Paramyxoviridae','Respirovirus','Human respirovirus 3',['Human parainfluenza virus 3'],15460,'nc',.08,6],
+['Paramyxoviridae','Respirovirus','Human respirovirus 1',['Human parainfluenza virus 1'],15600,'nc',.05,5.5],
+['Paramyxoviridae','Orthorubulavirus','Human orthorubulavirus 4',['Human parainfluenza virus 4'],17050,'nc',.04,5],
+['Adenoviridae','Mastadenovirus','Human mastadenovirus F',['Human adenovirus F40'],34200,'sw',.12,6],
+['Adenoviridae','Mastadenovirus','Human mastadenovirus B',['Human adenovirus B3','Human adenovirus B7'],35300,'ncw',.07,5.5],
+['Adenoviridae','Mastadenovirus','Human mastadenovirus C',['Human adenovirus C2'],35900,'snc',.10,4.5],
+['Sedoreoviridae','Rotavirus','Rotavirus A',['Rotavirus A G9P[8]','Rotavirus A G3P[8]'],18500,'sw',.08,6.5],
+['Sedoreoviridae','Rotavirus','Rotavirus C',['Rotavirus C'],17900,'sw',.03,5],
+['Astroviridae','Mamastrovirus','Mamastrovirus 1',['Human astrovirus 1','Human astrovirus 4'],6800,'sw',.07,5.5],
+['Astroviridae','Mamastrovirus','Mamastrovirus 9',['Astrovirus VA1','Astrovirus MLB2'],6600,'sw',.05,5],
+['Parvoviridae','Bocaparvovirus','Primate bocaparvovirus 1',['Human bocavirus 2','Human bocavirus 3'],5300,'snw',.10,4.5],
+['Parvoviridae','Erythroparvovirus','Primate erythroparvovirus 1',['Parvovirus B19'],5600,'cn',.04,4],
+['Parvoviridae','Protoparvovirus','Primate protoparvovirus 1',['Bufavirus 1'],4900,'sw',.04,3.5],
+['Anelloviridae','Alphatorquevirus','Torque teno virus',['Torque teno virus 3','Torque teno virus 6','Torque teno virus 10','Torque teno virus 12','Torque teno virus 19'],3800,'csnw',.25,3.5],
+['Anelloviridae','Betatorquevirus','Torque teno mini virus',['Torque teno mini virus 1','Torque teno mini virus 4'],2900,'csn',.16,3],
+['Anelloviridae','Gammatorquevirus','Torque teno midi virus',['Torque teno midi virus 1'],3250,'cs',.10,3],
+['Polyomaviridae','Betapolyomavirus','Human polyomavirus 2',['JC polyomavirus'],5130,'ws',.30,5.5],
+['Polyomaviridae','Betapolyomavirus','Human polyomavirus 1',['BK polyomavirus'],5150,'wc',.16,5],
+['Polyomaviridae','Alphapolyomavirus','Human polyomavirus 5',['Merkel cell polyomavirus'],5390,'nc',.10,3.5],
+['Papillomaviridae','Alphapapillomavirus','Alphapapillomavirus 9',['Human papillomavirus 16'],7900,'cw',.06,4],
+['Papillomaviridae','Betapapillomavirus','Betapapillomavirus 1',['Human papillomavirus 5'],7750,'nc',.06,3.5],
+['Papillomaviridae','Gammapapillomavirus','Gammapapillomavirus 1',['Human papillomavirus 4'],7350,'nc',.05,3.5],
+['Orthoherpesviridae','Lymphocryptovirus','Human gammaherpesvirus 4',['Epstein-Barr virus'],172000,'cn',.10,4.5],
+['Orthoherpesviridae','Roseolovirus','Human betaherpesvirus 6B',['Human herpesvirus 6B','Human herpesvirus 7'],162000,'nc',.08,4],
+['Orthoherpesviridae','Cytomegalovirus','Human betaherpesvirus 5',['Human cytomegalovirus'],235000,'cs',.05,4],
+['Orthoherpesviridae','Simplexvirus','Human alphaherpesvirus 1',['Herpes simplex virus 1'],152000,'nc',.05,4.5],
+['Circoviridae','Circovirus','Porcine circovirus 3',['Porcine circovirus 3'],2000,'sw',.06,4],
+['Circoviridae','Cyclovirus','Cyclovirus VN',['Human-associated cyclovirus 8'],1800,'sw',.06,3.5],
+['Genomoviridae','Gemycircularvirus','Gemycircularvirus',['Genomovirus HV-GcV1','Genomovirus SL1'],2200,'wsn',.08,3.5],
+['Hepadnaviridae','Orthohepadnavirus','Hepatitis B virus',['Hepatitis B virus genotype A2','Hepatitis B virus genotype C'],3215,'cs',.03,4.5],
+['Virgaviridae','Tobamovirus','Tomato mosaic virus',['Tomato mosaic virus','Tomato brown rugose fruit virus','Tobacco mild green mosaic virus'],6380,'ws',.35,6],
+['Virgaviridae','Tobravirus','Tobacco rattle virus',['Tobacco rattle virus'],6790,'w',.15,4],
+['Solemoviridae','Polerovirus','Beet western yellows virus',['Beet western yellows virus','Cucurbit aphid-borne yellows virus'],5660,'ws',.15,4],
+['Tombusviridae','Tombusvirus','Tomato bushy stunt virus',['Tomato bushy stunt virus','Cucumber necrosis virus'],4780,'ws',.12,4],
+['Intestiviridae','Carjivirus','Carjivirus communis',['crAss-like phage crAss002','crAss-like phage IAS'],97000,'sw',.45,8],
+['Microviridae','Gokushovirus','Gokushovirinae sp.',['Gokushovirus GKS1','Gokushovirus GKS7','Gokushovirus GKS12'],5000,'sw',.35,6]];
+const seg=(arr,b)=>arr.map(([label,len],i)=>({label,len,acc:`${b}${i}.1`}));
+const SEG_FLU=[['PB2',2341],['PB1',2341],['PA',2233],['HA',1778],['NP',1565],['NA',1413],['M',1027],['NS',890]];
+const SEG_ROTA=[['1',3302],['2',2693],['3',2591],['4',2362],['5',1611],['6',1356],['7',1104],['8',1059],['9',1062],['10',751],['11',667]];
+const VIR=[
+{n:'Influenza A virus (H3N2)',f:'Orthomyxoviridae',g:'Alphainfluenzavirus',sp:'Influenza A virus',segs:seg(SEG_FLU,'CY12168'),gn:{PB2:'PB2',PB1:'PB1',PA:'PA',HA:'HA',NP:'NP',NA:'NA',M:'M1 / M2',NS:'NS1 / NEP'},det:[[2,60100,91,99.0,99.8,.97]],aff:['nasal','clinical']},
+{n:'Norovirus GII.4 Sydney',f:'Caliciviridae',g:'Norovirus',sp:'Norwalk virus',len:7560,acc:'OP690425.1',genes:[['ORF1',5,5104,1],['VP1',5085,6707,1],['VP2',6707,7483,1]],det:[[0,44852,98.2,94.9,96.6,.95],[1,1200,61,95,97,.9],[3,3100,88,93.5,95.2,.94]],aff:['stool','wastewater']},
+{n:'Rotavirus A G1P[8]',f:'Sedoreoviridae',g:'Rotavirus',sp:'Rotavirus A',segs:seg(SEG_ROTA,'NC_0115'),gn:{1:'VP1',2:'VP2',3:'VP3',4:'VP4',5:'NSP1',6:'VP6',7:'NSP3',8:'NSP2',9:'VP7',10:'NSP4',11:'NSP5 / NSP6'},det:[[0,32400,87,98.3,99.1,.96],[3,420,35,97,98.5,.9]],aff:['stool','wastewater']},
+{n:'SARS-CoV-2 JN.1',f:'Coronaviridae',g:'Betacoronavirus',sp:'SARS-related coronavirus',len:29903,acc:'OR726312.1',genes:[['ORF1ab',266,21555,1],['S',21563,25384,1],['ORF3a',25393,26220,1],['E',26245,26472,1],['M',26523,27191,1],['ORF6',27202,27387,1],['ORF7a',27394,27759,1],['ORF8',27894,28259,1],['N',28274,29533,1]],det:[[2,47100,99.5,99.6,99.9,.99],[3,2900,71,99.1,99.5,.98]],aff:['nasal','wastewater','clinical']},
+{n:'Enterovirus D68 B3',f:'Picornaviridae',g:'Enterovirus',sp:'Enterovirus D',len:7367,acc:'MN246004.1',genes:[['Polyprotein',700,7290,1]],det:[[2,4390,93,98.2,99.0,.95],[3,85,22,97,98,.8]],aff:['nasal','wastewater']},
+{n:'Human adenovirus F41',f:'Adenoviridae',g:'Mastadenovirus',sp:'Human mastadenovirus F',len:34214,acc:'DQ315364.2',det:[[1,668,54,99.0,99.6,.93],[3,1500,76,98.8,99.4,.94]],aff:['stool','wastewater']},
+{n:'Porcine circovirus 2',f:'Circoviridae',g:'Circovirus',sp:'Porcine circovirus 2',len:1767,acc:'AF055392.1',genes:[['Rep',51,995,1],['Cap',1034,1734,-1]],det:[[1,253,100,97,98.9,.88]],aff:['stool']},
+{n:'Hepatitis B virus genotype D',f:'Hepadnaviridae',g:'Orthohepadnavirus',sp:'Hepatitis B virus',len:3182,acc:'AB048704.1',genes:[['S',155,835,1],['X',1374,1838,1],['preC / C',1814,2452,1],['P',2307,3182,1]],det:[[0,252,78,98.5,99.2,.91]],aff:['stool','clinical']},
+{n:'Torque teno virus 1',f:'Anelloviridae',g:'Alphatorquevirus',sp:'Torque teno virus 1',len:3853,acc:'AB017610.1',genes:[['ORF2',107,316,1],['ORF1',589,2904,1]],det:[[0,11,12,94,96,.55],[1,190,66,92.1,93.0,.7]],aff:['stool','clinical','nasal']},
+{n:'Human bocavirus 1',f:'Parvoviridae',g:'Bocaparvovirus',sp:'Primate bocaparvovirus 1',len:5543,acc:'JQ923422.1',genes:[['NS1',253,2175,1],['NP1',2410,3072,1],['VP1 / VP2',3056,5071,1]],det:[[1,4,6,97,98,.4]],aff:['stool','nasal']},
+{n:'Turnip yellows virus',f:'Solemoviridae',g:'Polerovirus',sp:'Turnip yellows virus',len:5641,acc:'X13063.1',det:[[3,1,2,96,97,.3]],aff:['wastewater']},
+{n:'Pepper mild mottle virus',f:'Virgaviridae',g:'Tobamovirus',sp:'Pepper mild mottle virus',len:6357,acc:'M81413.1',genes:[['126K / 183K',69,4908,1],['MP',4909,5745,1],['CP',5685,6164,1]],det:[[0,8200,99,98,99.3,.97],[1,6100,98,98,99.2,.97],[3,71000,100,98.5,99.4,.98]],aff:['stool','wastewater']},
+{n:'Astrovirus MLB1',f:'Astroviridae',g:'Mamastrovirus',sp:'Mamastrovirus 6',len:6171,acc:'FJ222451.1',genes:[['ORF1a',14,2500,1],['ORF1b',2470,3990,1],['ORF2',3990,6080,1]],det:[[1,2300,84,91.5,93.8,.92]],aff:['stool']},
+{n:'Sapovirus GI.1',f:'Caliciviridae',g:'Sapovirus',sp:'Sapporo virus',len:7429,acc:'AY694184.1',genes:[['ORF1',13,6882,1],['ORF2',6882,7376,1]],det:[[1,890,70,96,97.5,.9],[3,130,30,95,96.5,.8]],aff:['stool','wastewater']},
+{n:'Rhinovirus A101',f:'Picornaviridae',g:'Enterovirus',sp:'Rhinovirus A',len:7152,acc:'MZ268699.1',genes:[['Polyprotein',620,7090,1]],det:[[2,310,41,89.2,90.5,.85]],aff:['nasal','clinical']},
+{n:'Respiratory syncytial virus A',f:'Pneumoviridae',g:'Orthopneumovirus',sp:'Orthopneumovirus hominis',len:15222,acc:'KY654518.1',genes:[['NS1',99,518,1],['NS2',626,1000,1],['N',1140,2315,1],['P',2347,3072,1],['M',3255,4025,1],['SH',4303,4497,1],['G',4688,5584,1],['F',5666,7390,1],['M2',7606,8431,1],['L',8498,14995,1]],det:[[2,1700,83,99.2,99.7,.95]],aff:['nasal','clinical']},
+{n:'Human coronavirus OC43',f:'Coronaviridae',g:'Betacoronavirus',sp:'Betacoronavirus 1',len:30741,acc:'AY585228.1',det:[[2,60,18,98,99,.7]],aff:['nasal','clinical']},
+{n:'crAss-like phage crAss001',f:'Intestiviridae',g:'Carjivirus',sp:'Carjivirus communis',len:97065,acc:'NC_024711.1',det:[[0,118000,100,97.8,99.0,.99],[1,54000,99,97.5,98.9,.99],[3,210000,100,97.9,99.1,.99]],aff:['stool','wastewater']}];
+const PALS={mgviz:['#2f6db5','#d9822b','#3a9a6e','#c2457a','#7b63b8','#a69b22','#cf5a3c','#4b9fc6'],'okabe-ito':['#0072B2','#E69F00','#009E73','#CC79A7','#56B4E9','#D55E00','#b5a30a','#7f7f7f'],'tol-muted':['#332288','#CC6677','#117733','#DDCC77','#88CCEE','#882255','#44AA99','#999933']};
+const TIERS=['Trace','Low','Medium','High'];
+const fmt=n=>n>=1e6?(n/1e6).toFixed(1)+'M':n>=1e4?Math.round(n/1e3)+'k':n>=1e3?(n/1e3).toFixed(1)+'k':String(Math.round(n));
+const fmtI=n=>Math.round(n).toLocaleString('en-US');
+const fmtR=n=>n>=1000?fmt(n):n>=10?n.toFixed(0):n.toFixed(1);
+const tierOf=d=>(d.pct>=80&&d.reads>=500&&d.gv>=.8&&d.rid>=90)?3:(d.pct>=40&&d.reads>=50)?2:d.reads>=10?1:0;
+const SAMPLE_TYPES=['stool','nasal','wastewater','clinical'];
+
+function genOrfs(len,rnd,gene){const o=[];let pos=30+Math.floor(rnd()*60);let k=1;while(pos<len-150){const l=Math.min(len-pos-20,200+Math.floor(rnd()*Math.min(2600,len*0.6)));o.push({name:gene&&k===1?gene:`ORF${k}`,start:pos,end:pos+l,strand:rnd()<0.82?1:-1,partial:false});pos+=l+Math.floor(rnd()*120)+10;k++;}if(o.length&&rnd()<0.3)o[o.length-1].partial=true;return o;}
+function mkDet(v,sample,reads,pct,rid,cid,gv,rnd){const totalLen=v.segs.reduce((a,s)=>a+s.len,0);const segs=v.segs.map(s=>{const r=Math.max(1,Math.round(reads*s.len/totalLen*(0.8+rnd()*0.4)));const d=r*150/s.len;const arr=new Array(100).fill(0).map(()=>d*Math.exp((rnd()-0.5)*0.7));let zeros=Math.round((1-pct/100)*100);let guard=0;while(zeros>0&&guard++<60){const l=Math.min(zeros,1+Math.floor(rnd()*7));const st=Math.floor(rnd()*(100-l));for(let i=st;i<st+l;i++)arr[i]=0;zeros-=l;}arr[0]*=0.5;arr[99]*=0.5;const cov=arr.filter(x=>x>0).length;return{label:s.label,len:s.len,acc:s.acc,gene:s.gene,reads:r,pct:cov,meanCov:d,cov:arr,orfs:s.orfs};});const totalMapped=segs.reduce((a,s)=>a+s.reads,0);return{sample,reads:totalMapped,pct,rid,cid,gv,meanCov:totalMapped*150/totalLen,pi:+(rnd()*0.012).toFixed(3),nfrac:+(((100-pct)/100)*0.9+rnd()*0.01).toFixed(3),hall:Math.max(0,Math.round(gv*5+rnd()*2-1)),segs,rpkmf:0,tier:0,adj:cid<95};}
+function genData(mode){const large=mode!=='S';const rnd=R(mode==='XL'?11:large?7:42);const types=mode==='XL'?[['stool',40],['nasal',30],['wastewater',18],['clinical',12]]:large?[['stool',14],['nasal',12],['wastewater',8],['clinical',6]]:[['stool',2],['nasal',1],['wastewater',1]];const samples=[];types.forEach(([t,n])=>{for(let i=1;i<=n;i++){const name=large?`${t}_${t[0].toUpperCase()}${String(i).padStart(2,'0')}`:(t==='stool'?`stool_A0${i}`:t==='nasal'?'nasal_N07':'wastewater_W1');const raw=Math.round((2.5+rnd()*5)*1e6);const trimmed=Math.round(raw*(0.9+rnd()*0.08));const host=Math.round(trimmed*(t==='wastewater'?0.95:t==='stool'?0.55+rnd()*0.3:0.08+rnd()*0.2));samples.push({name,type:t,raw,trimmed,filtered:host,mapped:0});}});
+const idxMap=mode==='XL'?[0,1,40,70]:large?[0,1,14,26]:[0,1,2,3];const viruses=[];let id=0;
+const build=(spec,synthK)=>{const segs=spec.segs?spec.segs.map(s=>({...s,gene:spec.gn?spec.gn[s.label]:null})):[{label:'—',len:spec.len,acc:spec.acc||`MG${String(100000+Math.floor(rnd()*899999))}.1`,gene:null}];segs.forEach(s=>{s.orfs=(spec.genes&&!spec.segs)?spec.genes.map(([name,start,end,strand])=>({name,start,end,strand,partial:false})):genOrfs(s.len,rnd,s.gene);});const name=synthK?`${spec.sp} strain ${synthK}`:spec.n;return{id:'v'+(id++),n:name,f:spec.f,g:spec.g,sp:spec.sp,segs,det:{},tot:0,aff:spec.aff,realm:FAM[spec.f][0],order:FAM[spec.f][1]};};
+VIR.forEach(spec=>{const v=build(spec);spec.det.forEach(([si,reads,pct,rid,cid,gv])=>{v.det[samples[idxMap[si]].name]=mkDet(v,samples[idxMap[si]].name,reads,pct,rid,cid,gv,rnd);});if(large){samples.forEach(s=>{if(v.det[s.name]||!spec.aff.includes(s.type)||rnd()>0.22)return;const reads=Math.round(Math.exp(rnd()*10+1));const pct=Math.min(100,Math.round(100*(1-Math.exp(-reads*150/v.segs.reduce((a,x)=>a+x.len,0)/2))*(0.8+rnd()*0.25)));const rid=+(rnd()<0.025?86+rnd()*3.5:95.6+rnd()*4.2).toFixed(1);v.det[s.name]=mkDet(v,s.name,reads,pct,rid,+Math.min(99.9,rid+rnd()*2).toFixed(1),+(rnd()<0.03?0.35+rnd()*0.2:Math.min(.99,0.84+rnd()*0.15-(pct<40?0.12:0))).toFixed(2),rnd);});}viruses.push(v);});
+if(large){const TY={s:'stool',n:'nasal',w:'wastewater',c:'clinical'};const gauss=()=>(rnd()+rnd()+rnd()-1.5)*1.6;CAT.forEach(([f,g,sp,names,len,tys,p,lvl,ob])=>{names.forEach((nm,ni)=>{const v=build({n:nm,f,g,sp,len:Math.round(len*(0.97+rnd()*0.06)),aff:tys.split('').map(c=>TY[c])});const pn=p*(1-ni*0.18);samples.forEach(s=>{const k=tys.indexOf(s.type[0]);let pr=k<0?0:pn*(k===0?1:0.5);let boost=0;if(ob&&ni===0&&s.type===TY[ob[0]]){const idx=+s.name.slice(-2)-1;if(idx>=ob[1]&&idx<=ob[2]){pr=ob[3];boost=2.2;}}if(rnd()>=pr)return;const reads=Math.max(1,Math.round(Math.exp(lvl+boost+gauss())));const pct=Math.min(100,Math.round(100*(1-Math.exp(-reads*150/len/2))*(0.82+rnd()*0.22)));const div=rnd()<0.025;const rid=+(div?86+rnd()*3.5:95.6+rnd()*4.2).toFixed(1);v.det[s.name]=mkDet(v,s.name,reads,pct,rid,+Math.min(99.9,rid+rnd()*1.5).toFixed(1),+(rnd()<0.03?0.35+rnd()*0.2:Math.min(.99,0.84+rnd()*0.15-(pct<40?0.12:0))).toFixed(2),rnd);});if(Object.keys(v.det).length)viruses.push(v);});});}
+samples.forEach(s=>{s.mapped=viruses.reduce((a,v)=>a+(v.det[s.name]?v.det[s.name].reads:0),0);});
+viruses.forEach(v=>{const len=v.segs.reduce((a,s)=>a+s.len,0);Object.values(v.det).forEach(d=>{const s=samples.find(x=>x.name===d.sample);d.rpkmf=d.reads/(len/1000)/(s.filtered/1e6);d.tier=tierOf(d);d.virus=v;});v.tot=Object.values(v.det).reduce((a,d)=>a+d.reads,0);v.len=len;v.acc=v.segs[0].acc;v.nS=Object.keys(v.det).length;});
+const famOrder=Array.from(new Set(viruses.map(v=>v.f))).sort((a,b)=>viruses.filter(v=>v.f===b).reduce((x,v)=>x+v.tot,0)-viruses.filter(v=>v.f===a).reduce((x,v)=>x+v.tot,0));
+const vmap={};viruses.forEach(v=>vmap[v.id]=v);return{samples,viruses,famOrder,vmap,maxRpkmf:Math.max(...viruses.flatMap(v=>Object.values(v.det).map(d=>d.rpkmf)))};}
+
+class Component extends DCLogic {
+  constructor(p){super(p);this.state={tab:p.initialTab||'overview',selSample:null,selFamily:null,selVirus:null,hoverVirus:null,hoverSample:null,treeLayout:p.initialLayout||'rect',tierKey:null,sampleQ:'',samplesOpen:null,famsOpen:false,typeOpen:{},heatTop:'auto',heatCols:'cluster',treeCols:'auto',groupBy:'auto',groupLimit:20,groupOpen:{},ovSort:'viral',ovLimit:20,ovQ:'',treeRot:0,zoomFam:'',treeTool:null,compTop:'auto',compSort:'type',flagOnly:false,famColors:{},paletteSel:null,colorOpen:false,colorEdit:null,hexDrafts:{},treeValue:'rpkmf',search:'',minTier:0,sharedOnly:false,expanded:{},collapsed:null,compare:false,sortKey:'rpkmf',sortDir:-1};this.treeRef=React.createRef();this.ovCardsRef=React.createRef();this.ovSamplesRef=React.createRef();this.ovSharedRef=React.createRef();this.ovFlagsRef=React.createRef();this.heatRef=React.createRef();this.genRef=React.createRef();this.tipRef=React.createRef();this.tipRef2=React.createRef();this.treeT=null;try{const sv=JSON.parse(localStorage.getItem('mgviz.colors')||'null');if(sv){this.state.famColors=sv.fc||{};this.state.paletteSel=sv.ps||null;}}catch(e){}}
+  get mode(){const v=String(this.props.dataScale??this.props.scale??'');return(v.startsWith('100')||v==='xl')?'XL':(v.startsWith('40')||v==='large')?'L':'S';}
+  get large(){return this.mode!=='S';}
+  data(){const k=this.mode;if(this._dk!==k){this._dk=k;this._data=genData(k);this.treeT=null;}return this._data;}
+  theme(){return this.props.theme??'light';}
+  tv(){const dark=this.theme()==='dark';return dark?{dark,bg:'#1b1f1d',fg:'#e4e6e0',muted:'#99a19b',line:'#2e3431',faint:'#242927',absent:'#222725',seq:['#263645','#a9d6ff'],tierFg:['#a3a9a3','#f0957a','#e3c35a','#78cf9c'],tierBg:['#2a2e2c','#3b2a24','#3a3320','#213a2c'],grey:'#6b7370',ink:'#c9cdc6',attn:'#f0957a'}:{dark,bg:'#ffffff',fg:'#1c201e',muted:'#636a66',line:'#d9dcd4',faint:'#eef0ea',absent:'#f0f1ec',seq:['#dde6ee','#0e3a62'],tierFg:['#6f746f','#a84f2b','#8a6d05','#246b43'],tierBg:['#ededeb','#f6e4dc','#f6eed0','#dcefe3'],grey:'#a3a8a4',ink:'#3b4440',attn:'#a84f2b'};}
+  famColor(f){const o=this.state.famColors&&this.state.famColors[f];if(o)return o;const pal=PALS[this.state.paletteSel||this.props.palette]||PALS.mgviz;const i=this.data().famOrder.indexOf(f);if(!(i>=0&&i<pal.length))return this.tv().grey;let c=pal[i];if(this.tv().dark&&window.d3)c=window.d3.color(c).brighter(0.7).formatHex();return c;}
+  saveColors(fc,ps){try{localStorage.setItem('mgviz.colors',JSON.stringify({fc,ps}));}catch(e){}}
+  seq(){const t=this.tv();const p=c=>[1,3,5].map(k=>parseInt(c.slice(k,k+2),16));const a=p(t.seq[0]),b=p(t.seq[1]);const g=1.8;const L=x=>Math.pow(x/255,g),U=x=>Math.round(255*Math.pow(x,1/g));return v=>{const f=Math.max(0,Math.min(1,+v||0));return'#'+a.map((x,k)=>U(L(x)+(L(b[k])-L(x))*f).toString(16).padStart(2,'0')).join('');};}
+  inkOn(bg){const c=[1,3,5].map(k=>parseInt(bg.slice(k,k+2),16)/255).map(x=>x<=.03928?x/12.92:Math.pow((x+.055)/1.055,2.4));const Y=.2126*c[0]+.7152*c[1]+.0722*c[2];return Y>.32?'#1c201e':'#ffffff';}
+  val(d){const k=this.state.treeValue;return k==='pct'?d.pct/100:k==='reads'?Math.log10(d.reads+1)/Math.log10(this.maxReads()+1):Math.log10(d.rpkmf+1)/Math.log10(this.data().maxRpkmf+1);}
+  maxReads(){if(!this._mr||this._mrk!==this._dk){this._mrk=this._dk;this._mr=Math.max(...this.data().viruses.flatMap(v=>Object.values(v.det).map(d=>d.reads)));}return this._mr;}
+  effCollapsed(){const s=this.state;if(s.collapsed)return s.collapsed;const c={};if(this.data().viruses.length>130)this.data().famOrder.forEach(f=>c[f]=true);return c;}
+  dets(){const {viruses}=this.data();return viruses.flatMap(v=>Object.values(v.det));}
+  filteredDets(){const s=this.state,q=s.search.toLowerCase();return this.dets().filter(d=>{const v=d.virus;return(!s.selSample||d.sample===s.selSample)&&(!s.selFamily||v.f===s.selFamily)&&(!q||v.n.toLowerCase().includes(q)||v.f.toLowerCase().includes(q)||v.g.toLowerCase().includes(q)||v.acc.toLowerCase().includes(q))&&d.tier>=s.minTier&&(!s.sharedOnly||v.nS>=2);});}
+  matchV(v){const s=this.state,q=s.search.toLowerCase();return(!s.selFamily||v.f===s.selFamily)&&(!q||v.n.toLowerCase().includes(q)||v.f.toLowerCase().includes(q)||v.g.toLowerCase().includes(q)||v.acc.toLowerCase().includes(q))&&(s.selSample?(!!v.det[s.selSample]&&v.det[s.selSample].tier>=s.minTier):Object.values(v.det).some(d=>d.tier>=s.minTier));}
+  componentDidMount(){this.applyBody();this._rs=()=>this.draw(true);window.addEventListener('resize',this._rs);this.waitD3(()=>this.draw(true));}
+  componentWillUnmount(){window.removeEventListener('resize',this._rs);}
+  waitD3(cb){if(window.d3)cb();else setTimeout(()=>this.waitD3(cb),80);}
+  applyBody(){document.body.setAttribute('data-theme',this.theme());}
+  componentDidUpdate(pp,ps){this.applyBody();this.waitD3(()=>this.draw(false,ps,pp));}
+  draw(force,ps,pp){const s=this.state;const structural=force||!ps||['tab','treeLayout','treeValue','collapsed','sharedOnly','minTier','search','selFamily','selSample','famColors','paletteSel','heatTop','heatCols','treeCols','treeRot','treeTool','compTop','compSort'].some(k=>ps[k]!==s[k])||(pp&&(pp.theme!==this.props.theme||pp.palette!==this.props.palette||pp.dataScale!==this.props.dataScale));
+    if(s.tab==='tree'&&this.treeRef.current){if(structural||!this.treeRef.current.firstChild)this.drawTree();this.hlTree();}
+    if(s.tab==='heat'&&this.heatRef.current){if(structural||!this.heatRef.current.firstChild)this.drawHeat();this.hlHeat();}
+    if(s.selVirus&&this.genRef.current){if(structural||!ps||ps.selVirus!==s.selVirus||ps.compare!==s.compare||!this.genRef.current.firstChild)this.drawGenome();}}
+  // ---------- tree
+  buildTree(){const d3=window.d3,{viruses,famOrder}=this.data(),col=this.effCollapsed();const children=famOrder.map(f=>{const vs=viruses.filter(v=>v.f===f).sort((a,b)=>b.tot-a.tot);const via=[['realm',FAM[f][0]],['order',FAM[f][1]]];if(col[f])return{name:f,rank:'family',family:f,collapsed:true,n:vs.length,viruses:vs,via};const gen=d3.groups(vs,v=>v.g);const kids=gen.flatMap(([g,gv])=>{const tips=gv.map(v=>({name:v.n,rank:'tip',family:f,virus:v,via:[['genus',g],['species',v.sp]]}));return gen.length>1&&gv.length>1?[{name:g,rank:'genus',family:f,children:tips}]:tips;});return{name:f,rank:'family',family:f,children:kids,via,n:vs.length};});return{name:'Viruses',rank:'root',children};}
+  ringGroups(){const {samples}=this.data();const tc=this.state.treeCols;if(tc==='sample'||(tc!=='type'&&(samples.length<=12||(this.state.treeLayout==='rect'&&samples.length<=40))))return samples.map(s=>({name:s.name,samples:[s.name],type:s.type}));return SAMPLE_TYPES.filter(t=>samples.some(s=>s.type===t)).map(t=>({name:this.state.treeLayout==='rect'?`${t} · ${samples.filter(s=>s.type===t).length}`:`${t} (mean of ${samples.filter(s=>s.type===t).length})`,samples:samples.filter(s=>s.type===t).map(s=>s.name),type:t}));}
+  groupVal(vs,g){let n=0,sum=0;vs.forEach(v=>g.samples.forEach(sn=>{const d=v.det[sn];if(d){n++;sum+=this.val(d);}}));return n?{v:sum/n,n}:null;}
+  showTip(ref,html,ev,container){const el=ref.current;if(!el)return;el.style.display='block';el.innerHTML=html;const r=container.getBoundingClientRect();let x=ev.clientX-r.left+14,y=ev.clientY-r.top+14;if(x+290>r.width)x=ev.clientX-r.left-294;el.style.left=x+'px';el.style.top=y+'px';}
+  hideTip(ref){if(ref.current)ref.current.style.display='none';}
+  tipHtml(d){const t=this.tv();const rankRow=(r,n,b)=>`<div style="display:flex;gap:8px"><span style="opacity:.6;width:62px;text-transform:uppercase;font-size:9.5px;letter-spacing:.05em;padding-top:2px">${r}</span><span style="font-weight:${b?600:400}">${n}</span></div>`;let h='';if(d.data.rank==='tip'){const v=d.data.virus;h+=rankRow('realm',v.realm)+rankRow('order',v.order)+rankRow('family',v.f)+rankRow('genus',v.g)+rankRow('species',v.sp)+rankRow('strain',v.n,true);h+=`<div style="margin-top:6px;border-top:1px solid rgba(255,255,255,.2);padding-top:6px;display:grid;grid-template-columns:auto auto auto auto;gap:2px 10px;font-family:ui-monospace,Menlo,monospace;font-size:10.5px"><span style="opacity:.6">sample</span><span style="opacity:.6">reads</span><span style="opacity:.6">RPKMF</span><span style="opacity:.6">cov</span>${Object.values(v.det).sort((a,b)=>b.rpkmf-a.rpkmf).slice(0,8).map(x=>`<span>${x.sample}</span><span>${fmt(x.reads)}</span><span>${fmtR(x.rpkmf)}</span><span>${x.pct}%</span>`).join('')}</div>`;}else{const f=d.data.family;(d.data.via||[]).forEach(([r,n])=>h+=rankRow(r,n));h+=rankRow(d.data.rank,d.data.name,true);if(d.data.rank==='family')h+=`<div style="margin-top:4px;opacity:.75">${d.data.n} genome${d.data.n>1?'s':''} · click to ${d.data.collapsed?'expand':'collapse'}</div>`;}return h;}
+  drawTree(){const d3=window.d3,el=this.treeRef.current;if(!d3||!el)return;if(this.state.treeLayout==='comp'){this.treeG=null;return this.drawComp(el);}const s=this.state,t=this.tv(),{samples,vmap}=this.data();const root=d3.hierarchy(this.buildTree());const leaves=root.leaves(),n=leaves.length;const W=Math.max(480,el.clientWidth);const radial=s.treeLayout==='radial';const groups=this.ringGroups(),nR=groups.length;const seq=this.seq();const wgt=d=>d.data.collapsed?Math.min(7,1.6+Math.log2(d.data.n+1)):1;const maxLab=d3.max(leaves,d=>(d.data.collapsed?d.data.name.length+6:d.data.name.length+6))||10;const fs=n>90?8.5:n>45?10:n>20?11.5:12.5;
+    d3.select(el).selectAll('*').remove();const H=radial?Math.max(720,Math.min(W,980)):Math.max(420,leaves.reduce((a,d)=>a+wgt(d),0)*(n>90?12:n>45?17:26)+150);
+    const svg=d3.select(el).append('svg').attr('width',W).attr('height',H).attr('viewBox',[0,0,W,H]).attr('font-family','-apple-system, Segoe UI, system-ui, Helvetica, sans-serif').style('display','block');
+    svg.append('rect').attr('width',W).attr('height',H).attr('fill',t.bg);const g=svg.append('g');this.treeG=g;this.treeSvg=svg;
+    const zoom=d3.zoom().scaleExtent([0.5,12]).filter(ev=>this.zoomFilter(ev)).on('zoom',e=>{g.attr('transform',e.transform);this.treeT=e.transform;});svg.call(zoom).on('dblclick.zoom',null);this._zoom=zoom;if(this.treeT)svg.call(zoom.transform,this.treeT);
+    const tipEl=this.tipRef,cont=el.parentNode;const self=this;
+    const onEnter=(ev,d)=>{self.showTip(tipEl,self.tipHtml(d),ev,cont);if(d.data.rank==='tip'){self._hv=d.data.virus.id;self.hlTree();}};const onMove=(ev,d)=>self.showTip(tipEl,self.tipHtml(d),ev,cont);const onLeave=()=>{self.hideTip(tipEl);if(self._hv){self._hv=null;self.hlTree();}};
+    const onClick=(ev,d)=>{ev.stopPropagation();if(d.data.rank==='tip')self.setState({selVirus:d.data.virus.id});else if(d.data.rank==='family')self.toggleFam(d.data.family);};
+    const famLabel=d=>d.data.collapsed?`${d.data.name} · ${d.data.n}`:d.data.name;
+    if(radial){const VW=Math.max(W,1100);svg.attr('viewBox',[0,0,VW,VW]).attr('height',Math.min(W,VW)).attr('width',Math.min(W,VW));svg.select('rect').attr('width',VW).attr('height',VW);const cx=VW/2,cy=VW/2;const ringW=Math.max(7,Math.min(14,170/nR));const outer=VW/2-14;const famW=n>45?150:120;const ringR0=outer-famW-nR*ringW-4;const labelW=Math.min(fs*0.6*maxLab+20,ringR0*(n>45?0.42:0.6));const maxCh=Math.max(6,Math.floor((labelW-10)/(fs*0.56)));const trunc=x=>x.length>maxCh?x.slice(0,maxCh-1)+'…':x;const tipR=ringR0-labelW-4;const labC=f=>{const c=this.famColor(f);return c===t.grey?t.muted:c;};const gap=Math.max(0.4,Math.min(1.0,nR*0.035+0.32));const ab=t.dark?'#8ec0e4':'#2b5d86';const uid=this._uid||(this._uid=Math.random().toString(36).slice(2,7));
+      d3.cluster().size([2*Math.PI-gap,tipR]).separation((a,b)=>(wgt(a)+wgt(b))/2)(root);const rot=(s.treeRot||0)*Math.PI/180;const nrm=a=>((a%(2*Math.PI))+2*Math.PI)%(2*Math.PI);root.each(d=>{d.x+=gap/2+rot;d.y=d.depth===0?0:d.data.rank==='family'?tipR*0.36:d.data.rank==='genus'?tipR*0.66:tipR;});
+      const pos=(a,r)=>[cx+r*Math.sin(a),cy-r*Math.cos(a)];const step=(2*Math.PI-gap)/Math.max(1,leaves.reduce((a,d)=>a+wgt(d),0)-1);const fams=root.children||[];const span=d=>{const lv=d.leaves();return[d3.min(lv,x=>x.x-wgt(x)*step/2),d3.max(lv,x=>x.x+wgt(x)*step/2)];};
+      this._famMid={};fams.forEach(d=>{const [a0,a1]=span(d);this._famMid[d.data.family]=((a0+a1)/2-rot)*180/Math.PI;});this._radialVW=VW;
+      const gg=g.append('g').attr('transform',`translate(${cx},${cy})`);
+      g.append('g').attr('transform',`translate(${cx},${cy})`).selectAll('path').data(fams).join('path').attr('d',d=>{const [a0,a1]=span(d);return d3.arc()({innerRadius:tipR*0.36-12,outerRadius:ringR0-4,startAngle:a0,endAngle:a1});}).attr('fill',d=>this.famColor(d.data.family)).attr('opacity',0.08).attr('data-f',d=>d.data.family).attr('class','clade');
+      [['family',tipR*0.36],['genus',tipR*0.66],['virus',tipR]].forEach(([r,rad])=>{gg.append('circle').attr('r',rad).attr('fill','none').attr('stroke',t.line).attr('stroke-dasharray','2 4');gg.append('text').attr('x',(rad+4)*Math.sin(rot)).attr('y',-(rad+4)*Math.cos(rot)).attr('text-anchor','middle').attr('paint-order','stroke').attr('stroke',t.bg).attr('stroke-width',3).attr('font-size',9).attr('fill',t.muted).attr('letter-spacing','.08em').text(r.toUpperCase());});
+      const link=d=>{const [x0,y0]=pos(d.source.x,d.source.y),[x1,y1]=pos(d.target.x,d.source.y),[x2,y2]=pos(d.target.x,d.target.y);const sweep=d.target.x>d.source.x?1:0;return d.source.y===0?`M${cx},${cy}L${x2},${y2}`:`M${x0},${y0}A${d.source.y},${d.source.y} 0 0 ${sweep} ${x1},${y1}L${x2},${y2}`;};
+      g.append('g').attr('fill','none').selectAll('path').data(root.links()).join('path').attr('d',link).attr('stroke',d=>d.target.data.family?this.famColor(d.target.data.family):t.line).attr('stroke-width',d=>d.target.data.rank==='tip'?1.3:d.target.depth===1?2.6:1.8).attr('stroke-linecap','round').attr('class','link').attr('data-f',d=>d.target.data.family||'').attr('data-v',d=>d.target.data.virus?d.target.data.virus.id:'');
+      g.append('g').selectAll('path').data(leaves.filter(d=>d.data.collapsed)).join('path').attr('d',d=>{const half=wgt(d)*step/2*0.9;const [x0,y0]=pos(d.x,d.parent?d.parent.y:0),[x1,y1]=pos(d.x-half,tipR),[x2,y2]=pos(d.x+half,tipR);return `M${x0},${y0}L${x1},${y1}L${x2},${y2}Z`;}).attr('fill',d=>this.famColor(d.data.family)).attr('opacity',0.55).attr('stroke',t.bg).attr('class','node').attr('data-f',d=>d.data.family).style('cursor','pointer').on('mouseenter',onEnter).on('mousemove',onMove).on('mouseleave',onLeave).on('click',onClick);
+      g.append('g').selectAll('circle').data(root.descendants().filter(d=>d.depth>0&&d.data.rank!=='tip'&&!d.data.collapsed)).join('circle').attr('cx',d=>pos(d.x,d.y)[0]).attr('cy',d=>pos(d.x,d.y)[1]).attr('r',d=>d.data.rank==='family'?5:3.2).attr('fill',d=>this.famColor(d.data.family)).attr('stroke',t.bg).attr('stroke-width',1.5).attr('data-f',d=>d.data.family).attr('class','node').style('cursor','pointer').on('mouseenter',onEnter).on('mousemove',onMove).on('mouseleave',onLeave).on('click',onClick);
+      const rsz=d3.scaleSqrt().domain([1,this.maxReads()]).range([2,n>45?4:7]);
+      g.append('g').selectAll('circle').data(leaves.filter(d=>!d.data.collapsed)).join('circle').attr('cx',d=>pos(d.x,d.y)[0]).attr('cy',d=>pos(d.x,d.y)[1]).attr('r',d=>rsz(d.data.virus.tot)).attr('fill',d=>this.famColor(d.data.family)).attr('stroke',t.bg).attr('stroke-width',1.2).attr('class','tip').attr('data-v',d=>d.data.virus.id).style('cursor','pointer').on('mouseenter',onEnter).on('mousemove',onMove).on('mouseleave',onLeave).on('click',onClick);
+      g.append('g').selectAll('text').data(leaves).join('text').attr('transform',d=>{const deg=d.x*180/Math.PI;const flip=nrm(d.x)>Math.PI;return `translate(${cx},${cy}) rotate(${deg-90}) translate(${tipR+8},0) rotate(${flip?180:0})`;}).attr('dy','0.32em').attr('text-anchor',d=>nrm(d.x)>Math.PI?'end':'start').attr('font-size',d=>d.data.collapsed?fs+1:fs).attr('font-weight',d=>d.data.collapsed?600:400).attr('fill',d=>d.data.collapsed?labC(d.data.family):t.fg).attr('class','lab').attr('data-v',d=>d.data.virus?d.data.virus.id:'').attr('data-f',d=>d.data.family).style('cursor','pointer').on('mouseenter',onEnter).on('mousemove',onMove).on('mouseleave',onLeave).on('click',onClick).each(function(d){const el=d3.select(this);const full=famLabel(d)+(d.data.collapsed?'':` ${fmt(d.data.virus.tot)}`);if(full.length>maxCh){el.text(trunc(famLabel(d)));return;}el.append('tspan').text(famLabel(d));if(!d.data.collapsed)el.append('tspan').attr('fill',t.muted).attr('font-size',fs-1.5).text(` ${fmt(d.data.virus.tot)}`);});
+      const ringG=g.append('g').attr('transform',`translate(${cx},${cy})`);const valTxt=gv=>s.treeValue==='pct'?Math.round(gv.v*100)+'%':s.treeValue==='reads'?fmt(Math.pow(10,gv.v*Math.log10(this.maxReads()+1))-1)+' reads':'RPKMF '+fmtR(Math.pow(10,gv.v*Math.log10(this.data().maxRpkmf+1))-1);
+      groups.forEach((gr,i)=>{const r0=ringR0+i*ringW,r1=r0+ringW-2.5;ringG.append('path').attr('d',d3.arc()({innerRadius:r0,outerRadius:r0+0.7,startAngle:rot+gap/2-step/2,endAngle:rot+2*Math.PI-gap/2+step/2})).attr('fill',t.line);
+        ringG.selectAll(null).data(leaves).join('path').attr('d',d=>{const gv=this.groupVal(d.data.collapsed?d.data.viruses:[d.data.virus],gr);const h=gv?Math.max(1.5,(r1-r0)*gv.v):0;return d3.arc()({innerRadius:r0+0.7,outerRadius:r0+0.7+h,startAngle:d.x-wgt(d)*step/2+0.006,endAngle:d.x+wgt(d)*step/2-0.006});}).attr('fill',ab).attr('class','cell').attr('data-v',d=>d.data.virus?d.data.virus.id:'').attr('data-f',d=>d.data.family).attr('data-g',i);
+        ringG.selectAll(null).data(leaves).join('path').attr('d',d=>d3.arc()({innerRadius:r0,outerRadius:r1,startAngle:d.x-wgt(d)*step/2,endAngle:d.x+wgt(d)*step/2})).attr('fill','transparent').on('mouseenter',(ev,d)=>{const gv=this.groupVal(d.data.collapsed?d.data.viruses:[d.data.virus],gr);this.showTip(tipEl,`<b>${gr.name}</b><br>${famLabel(d)}<br>${gv?(d.data.collapsed?'mean ':'')+valTxt(gv):'not detected'}`,ev,cont);}).on('mouseleave',()=>this.hideTip(tipEl));
+        ringG.append('text').attr('x',(r0+ringW/2)*Math.sin(rot)).attr('y',-(r0+ringW/2)*Math.cos(rot)).attr('dy','0.35em').attr('text-anchor','middle').attr('paint-order','stroke').attr('stroke',t.bg).attr('stroke-width',3).attr('font-size',Math.min(10.5,ringW-1)).attr('fill',t.fg).attr('font-family','ui-monospace, Menlo, monospace').attr('class','ringlab').attr('data-g',i).text(gr.name);});
+      const rf=ringR0+nR*ringW+3;const fg=g.append('g').attr('transform',`translate(${cx},${cy})`);
+      fams.forEach((d,i)=>{const [a0,a1]=span(d);const f=d.data.family;fg.append('path').attr('d',d3.arc()({innerRadius:rf,outerRadius:rf+8,startAngle:a0+0.004,endAngle:a1-0.004})).attr('fill',this.famColor(f)).attr('data-f',f).attr('class','famlab').style('cursor','pointer').on('mouseenter',(ev)=>{this.showTip(tipEl,this.tipHtml(d),ev,cont);}).on('mouseleave',()=>this.hideTip(tipEl)).on('click',ev=>onClick(ev,d));
+        const mid=nrm((a0+a1)/2),bottom=mid>Math.PI/2&&mid<Math.PI*1.5;const r=bottom?rf+20:rf+13;const lab=`${d.data.name} · ${d.data.n}`;const fits=(a1-a0)*r>lab.length*6.4;if(!fits){const deg=mid*180/Math.PI,flip=mid>Math.PI;fg.append('text').attr('transform',`rotate(${deg-90}) translate(${rf+14},0) rotate(${flip?180:0})`).attr('dy','0.32em').attr('text-anchor',flip?'end':'start').attr('font-size',10.5).attr('font-weight',600).attr('fill',labC(f)).attr('data-f',f).attr('class','famlab').style('cursor','pointer').on('click',ev=>onClick(ev,d)).text(lab);return;}const lab2=lab;
+        const p0=[r*Math.sin(a0),-r*Math.cos(a0)],p1=[r*Math.sin(a1),-r*Math.cos(a1)];const large=a1-a0>Math.PI?1:0;const id=`fp${uid}${i}`;fg.append('path').attr('id',id).attr('fill','none').attr('d',bottom?`M${p1[0]},${p1[1]}A${r},${r} 0 ${large} 0 ${p0[0]},${p0[1]}`:`M${p0[0]},${p0[1]}A${r},${r} 0 ${large} 1 ${p1[0]},${p1[1]}`);
+        fg.append('text').attr('font-size',11).attr('font-weight',600).attr('fill',labC(f)).attr('data-f',f).attr('class','famlab').style('cursor','pointer').on('click',ev=>onClick(ev,d)).append('textPath').attr('href',`#${id}`).attr('startOffset','50%').attr('text-anchor','middle').text(lab2);});
+    }else{const rowH=n>90?12:n>45?17:26;const famFs=n>45?10:12;const flw=d3.max(root.children||[],c=>(c.data.name.length+5)*famFs*0.62)||0;const left=Math.max(24,flw+16-Math.min(W*0.42,380)/Math.max(1,root.height)),top=Math.max(120,24+0.85*6.5*(d3.max(groups,g=>g.name.length)||8));const treeW=Math.max(140,Math.min(W*0.42,380,W-left-Math.min(260,fs*0.58*maxLab+40)-nR*(nR<=8?22:10)-0.6*6.5*(d3.max(groups,g=>g.name.length)||8)-40));const labelW=Math.min(260,fs*0.58*maxLab+40);const glw=0.6*6.5*(d3.max(groups,g=>g.name.length)||8);const avail=W-left-treeW-labelW-40-glw;const colW=Math.max(9,Math.min(30,avail/nR));{const need=left+treeW+labelW+nR*colW+glw+30;if(need>W){svg.attr('width',need).attr('viewBox',[0,0,need,H]);svg.select('rect').attr('width',need);}}
+      d3.cluster().size([leaves.reduce((a,d)=>a+wgt(d),0)*rowH,treeW]).separation((a,b)=>(wgt(a)+wgt(b))/2)(root);const step=rowH;const Y=d=>top+d.x,X=d=>left+d.y;const fams=root.children||[];
+      g.append('g').selectAll('rect').data(fams).join('rect').attr('x',d=>X(d)-8).attr('y',d=>{const lv=d.leaves();return top+d3.min(lv,x=>x.x-wgt(x)*step/2);}).attr('width',d=>left+treeW+labelW+nR*colW+24-X(d)+8).attr('height',d=>{const lv=d.leaves();return d3.max(lv,x=>x.x+wgt(x)*step/2)-d3.min(lv,x=>x.x-wgt(x)*step/2);}).attr('rx',4).attr('fill',d=>this.famColor(d.data.family)).attr('opacity',0.08).attr('class','clade').attr('data-f',d=>d.data.family);
+      g.append('g').attr('fill','none').selectAll('path').data(root.links()).join('path').attr('d',d=>`M${X(d.source)},${Y(d.source)}V${Y(d.target)}H${X(d.target)}`).attr('stroke',d=>d.target.data.family?this.famColor(d.target.data.family):t.line).attr('stroke-width',d=>d.target.data.rank==='tip'?1.4:2).attr('class','link').attr('data-f',d=>d.target.data.family||'').attr('data-v',d=>d.target.data.virus?d.target.data.virus.id:'');
+      g.append('g').selectAll('path').data(leaves.filter(d=>d.data.collapsed)).join('path').attr('d',d=>{const half=wgt(d)*step/2*0.85;return `M${X(d.parent)},${Y(d)}L${left+treeW},${Y(d)-half}L${left+treeW},${Y(d)+half}Z`;}).attr('fill',d=>this.famColor(d.data.family)).attr('opacity',0.55).attr('class','node').attr('data-f',d=>d.data.family).style('cursor','pointer').on('mouseenter',onEnter).on('mousemove',onMove).on('mouseleave',onLeave).on('click',onClick);
+      g.append('g').selectAll('circle').data(root.descendants().filter(d=>d.depth>0&&d.data.rank!=='tip'&&!d.data.collapsed)).join('circle').attr('cx',X).attr('cy',Y).attr('r',d=>d.data.rank==='family'?4.5:3).attr('fill',d=>this.famColor(d.data.family)).attr('stroke',t.bg).attr('stroke-width',1.5).attr('class','node').attr('data-f',d=>d.data.family).style('cursor','pointer').on('mouseenter',onEnter).on('mousemove',onMove).on('mouseleave',onLeave).on('click',onClick);
+      g.append('g').selectAll('text').data(root.descendants().filter(d=>d.data.rank==='family'&&!d.data.collapsed)).join('text').attr('x',d=>X(d)-8).attr('y',d=>Y(d)-9).attr('dy','0.32em').attr('text-anchor','end').attr('font-size',n>45?10:12).attr('font-weight',600).attr('paint-order','stroke').attr('stroke',t.bg).attr('stroke-width',3).attr('fill',d=>{const c=this.famColor(d.data.family);return c===t.grey?t.muted:c;}).attr('class','famlab').attr('data-f',d=>d.data.family).style('cursor','pointer').text(d=>`${d.data.name} · ${d.data.n}`).on('mouseenter',onEnter).on('mousemove',onMove).on('mouseleave',onLeave).on('click',onClick);
+      g.append('g').selectAll('text').data(root.descendants().filter(d=>d.data.rank==='genus')).join('text').attr('x',d=>X(d)-6).attr('y',d=>Y(d)-7).attr('text-anchor','end').attr('font-size',fs-1).attr('fill',t.muted).attr('font-style','italic').attr('data-f',d=>d.data.family).attr('class','node').text(d=>d.data.name);
+      const rsz=d3.scaleSqrt().domain([1,this.maxReads()]).range([2,n>45?4:7]);
+      g.append('g').selectAll('circle').data(leaves.filter(d=>!d.data.collapsed)).join('circle').attr('cx',X).attr('cy',Y).attr('r',d=>rsz(d.data.virus.tot)).attr('fill',d=>this.famColor(d.data.family)).attr('stroke',t.bg).attr('stroke-width',1.2).attr('class','tip').attr('data-v',d=>d.data.virus.id).style('cursor','pointer').on('mouseenter',onEnter).on('mousemove',onMove).on('mouseleave',onLeave).on('click',onClick);
+      g.append('g').selectAll('text').data(leaves).join('text').attr('x',left+treeW+10).attr('y',Y).attr('dy','0.32em').attr('font-size',d=>d.data.collapsed?fs+1:fs).attr('font-weight',d=>d.data.collapsed?600:400).attr('fill',d=>{if(!d.data.collapsed)return t.fg;const c=this.famColor(d.data.family);return c===t.grey?t.muted:c;}).attr('class','lab').attr('data-v',d=>d.data.virus?d.data.virus.id:'').attr('data-f',d=>d.data.family).style('cursor','pointer').on('mouseenter',onEnter).on('mousemove',onMove).on('mouseleave',onLeave).on('click',onClick).each(function(d){const el=d3.select(this);el.append('tspan').text(famLabel(d));if(!d.data.collapsed)el.append('tspan').attr('fill',t.muted).attr('font-size',fs-1.5).text(` ${fmt(d.data.virus.tot)}`);});
+      const mx=left+treeW+labelW;const mg=g.append('g');groups.forEach((gr,i)=>{const x=mx+i*colW;mg.selectAll(null).data(leaves).join('rect').attr('x',x+1).attr('y',d=>Y(d)-wgt(d)*step/2+1).attr('width',colW-2).attr('height',d=>wgt(d)*step-2).attr('rx',2).attr('fill',d=>{const gv=this.groupVal(d.data.collapsed?d.data.viruses:[d.data.virus],gr);return gv?seq(Math.max(0.08,gv.v)):t.absent;}).attr('class','cell').attr('data-v',d=>d.data.virus?d.data.virus.id:'').attr('data-f',d=>d.data.family).attr('data-g',i).on('mouseenter',(ev,d)=>{const gv=this.groupVal(d.data.collapsed?d.data.viruses:[d.data.virus],gr);this.showTip(tipEl,`<b>${gr.name}</b><br>${famLabel(d)}<br>${gv?`${s.treeValue==='pct'?'covered':s.treeValue}: ${s.treeValue==='pct'?Math.round(gv.v*100)+'%':s.treeValue==='reads'?fmt(Math.pow(10,gv.v*Math.log10(this.maxReads()+1))-1):fmtR(Math.pow(10,gv.v*Math.log10(this.data().maxRpkmf+1))-1)}`:'not detected'}`,ev,cont);}).on('mouseleave',()=>this.hideTip(tipEl));
+        mg.append('text').attr('transform',`translate(${x+colW/2},${top-14}) rotate(${colW<70?-55:0})`).attr('text-anchor',colW<70?'start':'middle').attr('dy','0.32em').attr('font-size',Math.min(11,Math.max(8,colW-2))).attr('fill',t.fg).attr('font-family','ui-monospace, Menlo, monospace').attr('class','ringlab').attr('data-g',i).text(gr.name);});
+      mg.append('text').attr('x',mx-6).attr('y',top-14).attr('text-anchor','end').attr('font-size',10).attr('fill',t.muted).text(s.treeValue==='pct'?'Genome covered':s.treeValue==='reads'?'Aligned reads (log)':'Abundance, RPKMF (log)');
+    }
+    this.installTools(svg,g,radial?this._radialVW/2:null);}
+  drawComp(el){const d3=window.d3,s=this.state,t=this.tv(),{samples,viruses,famOrder}=this.data();const W=Math.max(480,el.clientWidth);const by=s.treeValue==='rpkmf'?'rpkmf':'reads';const byLab=by==='reads'?'viral reads':'abundance (RPKMF)';const tipEl=this.tipRef,cont=el.parentNode;
+    const ok=d=>d&&d.tier>=s.minTier;const q=s.search.toLowerCase();const vOk=v=>!q||v.n.toLowerCase().includes(q)||v.f.toLowerCase().includes(q)||v.g.toLowerCase().includes(q);
+    const focusNames=s.selSample?[s.selSample]:samples.map(x=>x.name);const vval=(v,names)=>vOk(v)?d3.sum(names,nm=>ok(v.det[nm])?v.det[nm][by]:0):0;
+    const fams=famOrder.map(f=>({name:f,rank:'family',family:f,children:d3.groups(viruses.filter(v=>v.f===f),v=>v.g).map(([g,gv])=>({name:g,rank:'genus',family:f,children:gv.map(v=>({name:v.n,rank:'virus',family:f,virus:v,value:vval(v,focusNames)})).filter(x=>x.value>0)})).filter(x=>x.children.length)})).filter(x=>x.children.length);
+    const root=d3.hierarchy({name:'all',rank:'root',children:fams}).sum(d=>d.value||0).sort((a,b)=>b.value-a.value);const total=root.value||0;
+    d3.select(el).selectAll('*').remove();
+    const side=W>=980;const left=20,top=64;const icW=side?Math.round((W-left)*0.55):W-left-20;const icH=Math.max(420,Math.min(760,40+root.leaves().length*9));
+    const cs=s.compSort||'type';const allRows=samples.map(x=>{const parts=famOrder.map(f=>({f,v:d3.sum(viruses.filter(v=>v.f===f),v=>vval(v,[x.name]))})).filter(p=>p.v>0);const tot=d3.sum(parts,p=>p.v);const share=f=>{const p=parts.find(q=>q.f===f);return tot&&p?p.v/tot:0;};return{x,parts,tot,share};});const famSort=famOrder.includes(cs);const srt=cs==='name'?(a,b)=>a.x.name.localeCompare(b.x.name):cs==='total'?(a,b)=>b.tot-a.tot:famSort?(a,b)=>b.share(cs)-a.share(cs)||b.tot-a.tot:(a,b)=>SAMPLE_TYPES.indexOf(a.x.type)-SAMPLE_TYPES.indexOf(b.x.type)||a.x.name.localeCompare(b.x.name);let crow=allRows.slice().sort(srt);const ct=s.compTop||'auto';const clim=ct==='all'?0:ct==='auto'?(samples.length>30?30:0):+ct;if(clim)crow=crow.slice(0,clim);const nS=crow.length;const rowH=nS>20?12:22;const labW=nS>20?96:120;const totW=56;const bLeft=side?left+icW+44:left;const bW=(side?W-bLeft-20:W-left-20)-labW-totW;
+    const legItems=famOrder.map(f=>({f,w:f.length*6.2+22}));let lx=0,ly=0;const legW=labW+bW;legItems.forEach(it=>{if(lx+it.w>legW){lx=0;ly+=16;}it.x=lx;it.y=ly;lx+=it.w;});const legH=ly+16;
+    const bHead=side?top:top+icH+40;const bTop=bHead+legH+18;const H=Math.max(side?top+icH+30:0,bTop+nS*(rowH+3)+30);
+    const svg=d3.select(el).append('svg').attr('width',W).attr('height',H).attr('viewBox',[0,0,W,H]).attr('font-family','-apple-system, Segoe UI, system-ui, Helvetica, sans-serif').style('display','block');svg.append('rect').attr('width',W).attr('height',H).attr('fill',t.bg);this.treeSvg=svg;
+    const mix=(c,k)=>d3.interpolateRgb(t.bg,c)(k);const pc=v=>{const p=total?v/total*100:0;return p>=10?p.toFixed(0)+'%':p>=1?p.toFixed(1)+'%':'<1%';};const famSel=s.selFamily;
+    const hl=f=>svg.selectAll('[data-f]').attr('opacity',function(){return !f||this.dataset.f===f?1:0.22;});
+    const valStr=v=>by==='reads'?fmtI(v)+' reads':'RPKMF '+fmtR(v);
+    svg.append('text').attr('x',left).attr('y',20).attr('font-size',13).attr('font-weight',600).attr('fill',t.fg).text(`What makes up ${s.selSample||'all samples'}${famSel?' · '+famSel+' highlighted':''}`);
+    svg.append('text').attr('x',left).attr('y',38).attr('font-size',11).attr('fill',t.muted).text(total?`Height = share of ${byLab} in focus (${by==='reads'?fmt(total)+' reads':'sum '+fmtR(total)}). Click a family to highlight it, a virus to open it.`:'Nothing in the current focus.');
+    if(total){d3.partition().size([icH,4])(root);const xs=[0,0,.27,.54],xe=[0,.27,.54,1];const X0=d=>left+xs[d.depth]*icW,X1=d=>left+xe[d.depth]*icW-2;
+      ['Family','Genus','Virus'].forEach((h,i)=>svg.append('text').attr('x',left+xs[i+1]*icW).attr('y',top-8).attr('font-size',9.5).attr('fill',t.muted).attr('letter-spacing','.08em').text(h.toUpperCase()));
+      const nodes=root.descendants().filter(d=>d.depth>0);const kk=[0,.62,.4,.22];const cg=svg.append('g');
+      cg.selectAll('rect').data(nodes).join('rect').attr('x',X0).attr('y',d=>top+d.x0).attr('width',d=>X1(d)-X0(d)).attr('height',d=>Math.max(0.5,d.x1-d.x0-1)).attr('rx',2).attr('fill',d=>mix(this.famColor(d.data.family),kk[d.depth])).attr('data-f',d=>d.data.family).style('cursor','pointer')
+        .on('mouseenter',(ev,d)=>{hl(d.data.family);const lin=d.ancestors().reverse().slice(1,-1).map(a=>a.data.name).join(' › ');this.showTip(tipEl,`${lin?`<div style="opacity:.7;font-size:10.5px">${lin}</div>`:''}<b>${d.data.name}</b><br>${valStr(d.value)} · ${pc(d.value)} of focus${d.data.rank==='virus'?`<br><span style="opacity:.7">in ${Object.keys(d.data.virus.det).length} sample(s)</span>`:''}`,ev,cont);})
+        .on('mousemove',ev=>{if(tipEl.current)this.showTip(tipEl,tipEl.current.innerHTML,ev,cont);}).on('mouseleave',()=>{hl(famSel);this.hideTip(tipEl);})
+        .on('click',(ev,d)=>{if(d.data.rank==='virus')this.setState({selVirus:d.data.virus.id});else this.setState({selFamily:famSel===d.data.family?null:d.data.family});});
+      cg.selectAll('text').data(nodes.filter(d=>d.x1-d.x0>=13)).join('text').attr('x',d=>X0(d)+6).attr('y',d=>top+(d.x0+d.x1)/2).attr('dy','0.35em').attr('font-size',d=>d.depth===1?11.5:10.5).attr('font-weight',d=>d.depth===1?600:400).attr('fill',t.fg).attr('pointer-events','none').attr('data-f',d=>d.data.family).each(function(d){const w=X1(d)-X0(d)-12;const el=d3.select(this);const p=pc(d.value);const maxCh=Math.floor(w/6.1)-p.length-1;let nm=d.data.name;if(maxCh<4)return;if(nm.length>maxCh)nm=nm.slice(0,maxCh-1)+'…';el.append('tspan').text(nm+' ');el.append('tspan').attr('fill',t.muted).attr('font-family','ui-monospace, Menlo, monospace').attr('font-size',9.5).text(p);});}
+    svg.append('text').attr('x',bLeft).attr('y',side?20:bHead-24).attr('font-size',13).attr('font-weight',600).attr('fill',t.fg).text('Family composition per sample');
+    svg.append('text').attr('x',bLeft).attr('y',side?38:bHead-6).attr('font-size',11).attr('fill',t.muted).text(`Each bar = 100% of that sample's ${byLab}. ${nS<samples.length?'Showing '+nS+' of '+samples.length+' samples':'All '+nS+' samples'}${famSort?', most '+cs+' first (shown leftmost)':cs==='total'?', strongest viral signal first':cs==='name'?', by name':', by sample type'}. Click a sample to focus it.`);
+    const lg=svg.append('g').attr('transform',`translate(${bLeft},${bHead+(side?0:8)})`);legItems.forEach(it=>{const gi=lg.append('g').attr('transform',`translate(${it.x},${it.y})`).attr('data-f',it.f).style('cursor','pointer').on('click',()=>this.setState({selFamily:famSel===it.f?null:it.f})).on('mouseenter',()=>hl(it.f)).on('mouseleave',()=>hl(famSel));gi.append('rect').attr('width',9).attr('height',9).attr('rx',2).attr('fill',this.famColor(it.f));gi.append('text').attr('x',13).attr('y',4.5).attr('dy','0.35em').attr('font-size',10.5).attr('fill',t.fg).text(it.f);});
+    svg.append('text').attr('x',bLeft+labW+bW+8).attr('y',bTop-6).attr('font-size',9.5).attr('fill',t.muted).text(by==='reads'?'reads':'RPKMF');
+    crow.forEach((rw,i)=>{const x=rw.x;const y=bTop+i*(rowH+3);const parts=famSort?[...rw.parts.filter(p=>p.f===cs),...rw.parts.filter(p=>p.f!==cs)]:rw.parts;const tot=rw.tot;const on=s.selSample===x.name;
+      const row=svg.append('g').style('cursor','pointer').on('click',()=>this.setState({selSample:on?null:x.name}));
+      row.append('rect').attr('x',bLeft-4).attr('y',y-1.5).attr('width',labW+bW+totW).attr('height',rowH+3).attr('rx',3).attr('fill',on?t.faint:t.bg);
+      row.append('text').attr('x',bLeft).attr('y',y+rowH/2).attr('dy','0.35em').attr('font-size',nS>20?9.5:11).attr('font-family','ui-monospace, Menlo, monospace').attr('font-weight',on?700:400).attr('fill',t.fg).text(x.name);
+      if(!tot){row.append('text').attr('x',bLeft+labW).attr('y',y+rowH/2).attr('dy','0.35em').attr('font-size',10).attr('fill',t.muted).text('nothing in focus');return;}
+      let acc=0;parts.forEach(p=>{const w=p.v/tot*bW;row.append('rect').attr('x',bLeft+labW+acc).attr('y',y).attr('width',Math.max(0.5,w-1)).attr('height',rowH).attr('fill',this.famColor(p.f)).attr('data-f',p.f).on('mouseenter',ev=>{hl(p.f);this.showTip(tipEl,`<b>${x.name}</b><br>${p.f}: ${(p.v/tot*100).toFixed(1)}% · ${valStr(p.v)}`,ev,cont);}).on('mouseleave',()=>{hl(famSel);this.hideTip(tipEl);});acc+=w;});
+      row.append('text').attr('x',bLeft+labW+bW+8).attr('y',y+rowH/2).attr('dy','0.35em').attr('font-size',9.5).attr('font-family','ui-monospace, Menlo, monospace').attr('fill',t.muted).text(by==='reads'?fmt(tot):fmtR(tot));});
+    hl(famSel);this.wrapZoom(svg);}
+  hlTree(){const g=this.treeG;if(!g)return;const d3=window.d3,s=this.state,{vmap,samples}=this.data();const focus=this._hv||s.selVirus;const sampleIdx=s.selSample;const groups=this.ringGroups();const gIdx=sampleIdx?groups.findIndex(x=>x.samples.includes(sampleIdx)):-1;
+    const vOn=v=>!v||this.matchV(v);const fOn=f=>!f||!s.selFamily||f===s.selFamily;
+    g.selectAll('[data-v]').each(function(){const id=this.dataset.v,f=this.dataset.f;const v=id?vmap[id]:null;let o=1;if(v){if(!vOn(v))o=0.15;else if(focus)o=v.id===focus?1:0.35;}else if(!fOn(f))o=0.15;else if(focus)o=0.5;if(this.classList.contains('cell')&&gIdx>=0&&+this.dataset.g!==gIdx)o=Math.min(o,0.25);d3.select(this).attr('opacity',o).attr('font-weight',v&&focus&&v.id===focus&&this.classList.contains('lab')?700:null).attr('stroke-width',v&&focus&&v.id===focus&&this.classList.contains('link')?3:null);});
+    g.selectAll('.clade,.famlab,.node').filter(function(){return !this.dataset.v;}).each(function(){const f=this.dataset.f;d3.select(this).attr('opacity',this.classList.contains('clade')?(fOn(f)?0.09:0.02):fOn(f)?(this.classList.contains('node')&&this.tagName==='path'?0.55:1):0.2);});
+    g.selectAll('.ringlab').attr('font-weight',function(){return gIdx>=0&&+this.dataset.g===gIdx?700:400;});}
+  toggleFam(f){const c={...this.effCollapsed()};c[f]=!c[f];this.setState({collapsed:c});}
+  // ---------- heatmap
+  clusterVecs(vecs){const n=vecs.length;if(!n)return null;const nodes=vecs.map((v,i)=>({leaf:i,leaves:[i],h:0,size:1}));if(n<2)return nodes[0];const D=[];for(let i=0;i<n;i++){D[i]=new Float64Array(n);}for(let i=0;i<n;i++)for(let j=i+1;j<n;j++){let s=0;const a=vecs[i],b=vecs[j];for(let k=0;k<a.length;k++){const x=a[k]-b[k];s+=x*x;}D[i][j]=D[j][i]=Math.sqrt(s);}const act=nodes.map((_,i)=>i);while(act.length>1){let bi=0,bj=1,bd=Infinity;for(let a=0;a<act.length;a++){const Da=D[act[a]];for(let b=a+1;b<act.length;b++){const d=Da[act[b]];if(d<bd){bd=d;bi=a;bj=b;}}}const i=act[bi],j=act[bj],A=nodes[i],B=nodes[j];const m={children:[A,B],leaves:A.leaves.concat(B.leaves),h:bd,size:A.size+B.size};for(const k of act){if(k===i||k===j)continue;const d=(D[i][k]*A.size+D[j][k]*B.size)/m.size;D[i][k]=D[k][i]=d;}nodes[i]=m;act.splice(bj,1);}return nodes[act[0]];}
+  drawDendro(g,node,posOf,hScale,horizontal,color){const walk=n=>{if(!n.children)return posOf(n.leaf);const p=n.children.map(walk);const y=hScale(n.h);n.children.forEach((c,k)=>{const yc=hScale(c.h);if(horizontal)g.append('path').attr('d',`M${yc},${p[k]}H${y}`);else g.append('path').attr('d',`M${p[k]},${yc}V${y}`);});if(horizontal)g.append('path').attr('d',`M${y},${p[0]}V${p[1]}`);else g.append('path').attr('d',`M${p[0]},${y}H${p[1]}`);return (p[0]+p[1])/2;};walk(node);g.selectAll('path').attr('fill','none').attr('stroke',color).attr('stroke-width',1);}
+  drawHeat(){const d3=window.d3,el=this.heatRef.current;if(!d3||!el)return;const s=this.state,t=this.tv(),{samples,viruses}=this.data();let vs=viruses.filter(v=>this.matchV(v)||!s.selSample&&!s.search&&!s.selFamily).sort((a,b)=>b.nS-a.nS||b.tot-a.tot);const lim=this.heatLim();if(lim&&vs.length>lim)vs=vs.slice(0,lim);const sm=s.selSample?samples.filter(x=>x.name===s.selSample):samples;const nR=vs.length,nC=sm.length;const seq=this.seq();
+    const rowTree=this.clusterVecs(vs.map(v=>sm.map(x=>v.det[x.name]?Math.log10(v.det[x.name].rpkmf+1):0)));const colTree=this.clusterVecs(sm.map(x=>vs.map(v=>v.det[x.name]?Math.log10(v.det[x.name].rpkmf+1):0)));
+    const byType=s.heatCols==='type';const rowOrder=rowTree?rowTree.leaves:[0];let colOrder=colTree?colTree.leaves:[0];if(byType){const cp=new Map(colOrder.map((c,k)=>[c,k]));colOrder=sm.map((x,j)=>j).sort((a,b)=>SAMPLE_TYPES.indexOf(sm[a].type)-SAMPLE_TYPES.indexOf(sm[b].type)||cp.get(a)-cp.get(b));}const rIdx=new Map(rowOrder.map((r,k)=>[r,k])),cIdx=new Map(colOrder.map((c,k)=>[c,k]));
+    let W=Math.max(480,el.clientWidth);const dendW=nR>1?70:10,dendH=nC>1?50:10,labW=Math.min(260,d3.max(vs,v=>v.n.length)*6.6+24),totW=70;const cellH=nR>90?9:nR>45?14:24;const cellW=Math.max(6,Math.min(64,(W-dendW-labW-totW-60)/nC));const gp=cellW<9?0.5:1;const hdrH=cellW<9?20:cellW<70?110:24;const top=dendH+hdrH+16,left=dendW+10;W=Math.max(W,left+nC*cellW+10+labW+totW+30);const H=top+nR*cellH+60;
+    d3.select(el).selectAll('*').remove();const svg=d3.select(el).append('svg').attr('width',W).attr('height',H).attr('viewBox',[0,0,W,H]).attr('font-family','-apple-system, Segoe UI, system-ui, Helvetica, sans-serif').style('display','block');svg.append('rect').attr('width',W).attr('height',H).attr('fill',t.bg);this.heatSvg=svg;svg.on('mouseleave',()=>{this._hv=null;this._hs=null;this.hlHeat();this.hideTip(this.tipRef2);});
+    const rowY=i=>top+rIdx.get(i)*cellH,colX=j=>left+cIdx.get(j)*cellW;
+    if(rowTree&&nR>1){const hs=d3.scaleLinear().domain([0,rowTree.h]).range([left-6,left-dendW+4]);this.drawDendro(svg.append('g'),rowTree,i=>rowY(i)+cellH/2,hs,true,t.muted);}
+    if(colTree&&nC>1&&!byType){const hs=d3.scaleLinear().domain([0,colTree.h]).range([top-hdrH-8,top-hdrH-dendH+4]);this.drawDendro(svg.append('g'),colTree,j=>colX(j)+cellW/2,hs,false,t.muted);}
+    const TSH=this.typeShades();if(byType&&nC>1){SAMPLE_TYPES.forEach(ty=>{const js=colOrder.filter(j=>sm[j].type===ty);if(!js.length)return;const x0=colX(js[0]),x1=colX(js[js.length-1])+cellW;const yb=top-hdrH-20;svg.append('path').attr('d',`M${x0+1},${yb+6}V${yb}H${x1-1}V${yb+6}`).attr('fill','none').attr('stroke',t.muted);svg.append('text').attr('x',(x0+x1)/2).attr('y',yb-6).attr('text-anchor','middle').attr('font-size',10.5).attr('fill',t.fg).text(`${ty} · ${js.length}`);});}else if(nC>1){const sy=cellW>=9?top-hdrH-2:top-14;sm.forEach((x,j)=>svg.append('rect').attr('x',colX(j)+gp).attr('y',sy).attr('width',Math.max(1,cellW-2*gp)).attr('height',6).attr('fill',TSH[SAMPLE_TYPES.indexOf(x.type)]).append('title').text(x.name+' · '+x.type));}
+    const tipEl=this.tipRef2,cont=el.parentNode;
+    const cells=svg.append('g');vs.forEach((v,i)=>sm.forEach((x,j)=>{const d=v.det[x.name];const r=cells.append('rect').attr('x',colX(j)+gp).attr('y',rowY(i)+gp).attr('width',cellW-2*gp).attr('height',cellH-2*gp).attr('rx',cellW<9?0:2).attr('fill',d?seq(Math.max(0.08,this.val(d))):t.absent).attr('data-v',v.id).attr('data-s',x.name).attr('class','cell').style('cursor','pointer').on('mouseenter',ev=>{this._hv=v.id;this._hs=x.name;this.hlHeat();this.showTip(tipEl,`<b>${v.n}</b><br><span style="font-family:ui-monospace,Menlo,monospace">${x.name}</span> · ${x.type}<br>${d?`${fmt(d.reads)} reads · RPKMF ${fmtR(d.rpkmf)} · ${d.pct}% covered · ${TIERS[d.tier]}`:'not detected'}`,ev,cont);}).on('mouseleave',()=>{this._hv=null;this._hs=null;this.hlHeat();this.hideTip(tipEl);}).on('click',()=>this.setState({selVirus:v.id}));
+      if(d&&cellW>=40&&cellH>=14){const val=this.val(d);cells.append('text').attr('x',colX(j)+cellW/2).attr('y',rowY(i)+cellH/2).attr('dy','0.35em').attr('text-anchor','middle').attr('font-size',cellH>=20?10.5:9).attr('font-family','ui-monospace, Menlo, monospace').attr('fill',val>0.55?t.bg:t.fg).attr('pointer-events','none').attr('data-v',v.id).attr('data-s',x.name).attr('class','celltext').text(s.treeValue==='pct'?d.pct+'%':s.treeValue==='reads'?fmt(d.reads):fmtR(d.rpkmf));}}));
+    // row labels + totals
+    const lx=left+nC*cellW+10;const rl=svg.append('g');vs.forEach((v,i)=>{rl.append('rect').attr('x',lx).attr('y',rowY(i)+cellH/2-4).attr('width',8).attr('height',8).attr('rx',2).attr('fill',this.famColor(v.f)).attr('data-v',v.id).attr('class','rlab');rl.append('text').attr('x',lx+13).attr('y',rowY(i)+cellH/2).attr('dy','0.35em').attr('font-size',cellH>=20?11.5:cellH>=14?10:8).attr('fill',t.fg).attr('data-v',v.id).attr('class','rlab').style('cursor','pointer').text(v.n+(v.nS>1?`  ·  ${v.nS}`:'')).on('click',()=>this.setState({selVirus:v.id})).on('mouseenter',()=>{this._hv=v.id;this.hlHeat();}).on('mouseleave',()=>{this._hv=null;this.hlHeat();});});
+    const tx=lx+labW;const tsc=d3.scaleLog().domain([1,this.maxReads()*1.2]).range([0,totW-10]);svg.append('text').attr('x',tx).attr('y',top-8).attr('font-size',10).attr('fill',t.muted).text('total reads');vs.forEach((v,i)=>{svg.append('rect').attr('x',tx).attr('y',rowY(i)+2).attr('width',Math.max(1,tsc(Math.max(1,v.tot)))).attr('height',Math.max(2,cellH-4)).attr('rx',1.5).attr('fill',t.muted).attr('opacity',.5);if(cellH>=14)svg.append('text').attr('x',tx+tsc(Math.max(1,v.tot))+4).attr('y',rowY(i)+cellH/2).attr('dy','0.35em').attr('font-size',9).attr('font-family','ui-monospace, Menlo, monospace').attr('fill',t.muted).text(fmt(v.tot));});
+    // column headers + totals
+    const ch=svg.append('g');sm.forEach((x,j)=>{const cx=colX(j)+cellW/2;if(cellW>=9)ch.append('text').attr('transform',`translate(${cx},${top-8}) rotate(${cellW<70?-60:0})`).attr('text-anchor',cellW<70?'start':'middle').attr('dy','0.32em').attr('font-size',Math.min(11,Math.max(8,cellW-2))).attr('font-family','ui-monospace, Menlo, monospace').attr('fill',t.fg).attr('data-s',x.name).attr('class','clab').style('cursor','pointer').text(x.name).on('click',()=>this.setState({selSample:this.state.selSample===x.name?null:x.name})).on('mouseenter',()=>{this._hs=x.name;this.hlHeat();}).on('mouseleave',()=>{this._hs=null;this.hlHeat();});
+      const n=vs.filter(v=>v.det[x.name]).length;const by=top+nR*cellH+8;ch.append('rect').attr('x',colX(j)+1).attr('y',by).attr('width',cellW-2).attr('height',Math.max(2,n/Math.max(1,nR)*34)).attr('rx',1.5).attr('fill',t.muted).attr('opacity',.5);if(cellW>=14)ch.append('text').attr('x',cx).attr('y',by+46).attr('text-anchor','middle').attr('font-size',9).attr('font-family','ui-monospace, Menlo, monospace').attr('fill',t.muted).text(n);});
+    svg.append('text').attr('x',left-6).attr('y',top+nR*cellH+30).attr('text-anchor','end').attr('font-size',10).attr('fill',t.muted).text('viruses');}
+  hlHeat(){const svg=this.heatSvg;if(!svg)return;const d3=window.d3,s=this.state;const fv=this._hv||s.selVirus,fs=this._hs;svg.selectAll('.cell,.celltext,.rlab,.clab').each(function(){const v=this.dataset.v,sm=this.dataset.s;let o=1;if(fv&&v&&v!==fv)o=0.35;if(fs&&sm&&sm!==fs)o=Math.min(o,0.35);d3.select(this).attr('opacity',o);});}
+  // ---------- genome
+  curDet(v){const s=this.state;return v.det[s.selSample]||Object.values(v.det).sort((a,b)=>b.rpkmf-a.rpkmf)[0];}
+  drawGenome(){const d3=window.d3,el=this.genRef.current;if(!d3||!el)return;const s=this.state,t=this.tv(),v=this.data().vmap[s.selVirus];if(!v)return;const det=this.curDet(v);const dets=Object.values(v.det).sort((a,b)=>b.rpkmf-a.rpkmf);const compare=s.compare&&dets.length>1;const col=t.ink;const pal=PALS[this.props.palette]||PALS.mgviz;const sColor=i=>t.dark?d3.color(pal[(i+2)%pal.length]).brighter(.7).formatHex():pal[(i+2)%pal.length];
+    d3.select(el).selectAll('*').remove();const multi=v.segs.length>1;
+    if(compare){const lg=d3.select(el).append('div').style('grid-column','1 / -1').style('display','flex').style('gap','12px').style('flex-wrap','wrap').style('font-size','11.5px');dets.forEach((d,i)=>{lg.append('span').style('display','flex').style('align-items','center').style('gap','5px').html(`<span style="width:14px;height:3px;background:${sColor(i)};border-radius:2px"></span><span style="font-family:var(--mono)">${d.sample}</span><span style="color:var(--muted)">${fmt(d.reads)} reads</span>`);});}
+    det.segs.forEach((sg,si)=>{const wrap=d3.select(el).append('div').style('min-width','0');const W=Math.max(200,wrap.node().clientWidth||(multi?260:560));const covH=multi?70:140,orfH=multi?26:34,axH=22,top=multi?18:8;const H=top+covH+8+orfH+axH;
+      const svg=wrap.append('svg').attr('width',W).attr('height',H).attr('viewBox',[0,0,W,H]).attr('font-family','-apple-system, Segoe UI, system-ui, Helvetica, sans-serif').style('display','block');svg.append('rect').attr('width',W).attr('height',H).attr('fill',t.bg);
+      const ml=multi?30:40,mr=8;const x=d3.scaleLinear().domain([0,sg.len]).range([ml,W-mr]);const maxD=compare?d3.max(dets,d=>d3.max(d.segs[si].cov)):d3.max(sg.cov);const y=d3.scaleSymlog().domain([0,Math.max(10,maxD*1.1)]).range([top+covH,top]);
+      if(multi)svg.append('text').attr('x',ml).attr('y',11).attr('font-size',11).attr('font-weight',600).attr('fill',t.fg).text(`${sg.label}${sg.gene?' · '+sg.gene:''}`).append('tspan').attr('fill',t.muted).attr('font-weight',400).text(`  ${fmtI(sg.len)} bp · ${fmt(sg.reads)} reads · ${sg.pct}%`);
+      const yAx=d3.axisLeft(y).ticks(multi?3:5,'~s').tickSize(-(W-ml-mr));svg.append('g').attr('transform',`translate(${ml},0)`).call(yAx).call(g=>{g.select('.domain').remove();g.selectAll('.tick line').attr('stroke',t.faint);g.selectAll('.tick text').attr('fill',t.muted).attr('font-size',9.5);});
+      const area=d3.area().x((d,i)=>x((i+0.5)*sg.len/100)).y0(y(0)).y1(d=>y(d)).curve(d3.curveStepAfter);const line=d3.line().x((d,i)=>x((i+0.5)*sg.len/100)).y(d=>y(d)).curve(d3.curveStepAfter);
+      if(compare){dets.forEach((d,i)=>{svg.append('path').datum(d.segs[si].cov).attr('d',line).attr('fill','none').attr('stroke',sColor(i)).attr('stroke-width',1.5).attr('opacity',.9);});}else{svg.append('path').datum(sg.cov).attr('d',area).attr('fill',col).attr('opacity',.22);svg.append('path').datum(sg.cov).attr('d',line).attr('fill','none').attr('stroke',col).attr('stroke-width',1.4);
+        sg.cov.forEach((c,i)=>{if(c===0)svg.append('rect').attr('x',x(i*sg.len/100)).attr('y',top+covH-3).attr('width',Math.max(1,x(sg.len/100)-x(0))).attr('height',3).attr('fill',t.tierFg[1]);});}
+      // ORFs
+      const oy=top+covH+8;svg.append('line').attr('x1',ml).attr('x2',W-mr).attr('y1',oy+orfH/2).attr('y2',oy+orfH/2).attr('stroke',t.line);const ah=multi?9:12;const tipEl=this.tipRef2;
+      sg.orfs.forEach((o,k)=>{const x0=x(o.start),x1=x(o.end),w=x1-x0;const yy=o.strand>0?oy+orfH/2-ah-1:oy+orfH/2+1;const head=Math.min(6,w*0.4);const pts=o.strand>0?[[x0,yy],[x1-head,yy],[x1,yy+ah/2],[x1-head,yy+ah],[x0,yy+ah]]:[[x1,yy],[x0+head,yy],[x0,yy+ah/2],[x0+head,yy+ah],[x1,yy+ah]];const p=svg.append('polygon').attr('points',pts.map(q=>q.join(',')).join(' ')).attr('fill',col).attr('opacity',o.strand>0?.85:.55).attr('stroke',o.partial?t.fg:'none').attr('stroke-dasharray',o.partial?'2 2':null).style('cursor','pointer');p.append('title').text(`${o.name} · ${fmtI(o.start)}–${fmtI(o.end)} (${fmtI(o.end-o.start+1)} bp) · ${o.strand>0?'+':'−'} strand${o.partial?' · partial':''}`);
+        if(w>o.name.length*(multi?5.2:6.2)+8)svg.append('text').attr('x',(x0+x1)/2).attr('y',yy+ah/2).attr('dy','0.35em').attr('text-anchor','middle').attr('font-size',multi?8.5:10).attr('font-weight',600).attr('fill',t.bg).attr('pointer-events','none').text(o.name);});
+      svg.append('text').attr('x',ml-4).attr('y',oy+orfH/2-ah/2-1).attr('dy','0.35em').attr('text-anchor','end').attr('font-size',8.5).attr('fill',t.muted).text('+');svg.append('text').attr('x',ml-4).attr('y',oy+orfH/2+ah/2+1).attr('dy','0.35em').attr('text-anchor','end').attr('font-size',8.5).attr('fill',t.muted).text('−');
+      const xAx=d3.axisBottom(x).ticks(multi?3:7).tickFormat(d=>d>=1000?(d/1000).toFixed(d%1000?1:0)+' kb':d+' bp').tickSize(3);svg.append('g').attr('transform',`translate(0,${oy+orfH+2})`).call(xAx).call(g=>{g.select('.domain').attr('stroke',t.line);g.selectAll('.tick line').attr('stroke',t.line);g.selectAll('.tick text').attr('fill',t.muted).attr('font-size',9.5);});});}
+  // ---------- export
+  download(blob,name){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},500);}
+  svgString(container){const svgs=Array.from(container.querySelectorAll('svg'));if(!svgs.length)return null;let w=0,h=0,inner='';if(svgs.length===1){const c=svgs[0].cloneNode(true);c.setAttribute('xmlns','http://www.w3.org/2000/svg');return{str:new XMLSerializer().serializeToString(c),w:+svgs[0].getAttribute('width'),h:+svgs[0].getAttribute('height')};}svgs.forEach(sv=>{const c=sv.cloneNode(true);const sw=+sv.getAttribute('width'),sh=+sv.getAttribute('height');c.setAttribute('y',h);c.removeAttribute('style');inner+=new XMLSerializer().serializeToString(c);w=Math.max(w,sw);h+=sh+10;});return{str:`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}">${inner}</svg>`,w,h};}
+  exportFig(container,name,fmt){const r=this.svgString(container);if(!r)return;if(fmt==='svg')return this.download(new Blob([r.str],{type:'image/svg+xml'}),name+'.svg');const img=new Image();const url=URL.createObjectURL(new Blob([r.str],{type:'image/svg+xml'}));img.onload=()=>{const c=document.createElement('canvas');c.width=r.w*3;c.height=r.h*3;const ctx=c.getContext('2d');ctx.fillStyle=this.tv().bg;ctx.fillRect(0,0,c.width,c.height);ctx.drawImage(img,0,0,c.width,c.height);c.toBlob(b=>{this.download(b,name+'.png');URL.revokeObjectURL(url);},'image/png');};img.src=url;}
+  tsv(rows){return rows.map(r=>r.join('\t')).join('\n');}
+  exportRows(rows,name,fmt){const esc=v=>{const x=v==null?'':String(v);return /[",\n\r]/.test(x)?'"'+x.replace(/"/g,'""')+'"':x;};if(fmt==='csv'){const txt='\ufeff'+rows.map(r=>r.map(esc).join(',')).join('\r\n');this.download(new Blob([txt],{type:'text/csv;charset=utf-8'}),name+'.csv');}else{const txt=rows.map(r=>r.map(v=>String(v==null?'':v).replace(/[\t\n\r]/g,' ')).join('\t')).join('\n');this.download(new Blob([txt],{type:'text/tab-separated-values'}),name+'.tsv');}}
+  exportNode(node,name){if(!node||!window.htmlToImage)return;const bg=getComputedStyle(document.body).getPropertyValue('--panel')||'#fff';const sw=node.scrollWidth,sh=node.scrollHeight;window.htmlToImage.toPng(node,{pixelRatio:2,backgroundColor:bg.trim()||'#fff',width:sw,height:sh,style:{overflow:'visible'},filter:el=>!(el.tagName==='SPAN'&&el.getAttribute&&el.getAttribute('title')&&/^Exports all/.test(el.getAttribute('title')))}).then(u=>{const a=document.createElement('a');a.href=u;a.download=name+'.png';document.body.appendChild(a);a.click();a.remove();}).catch(e=>console.warn('PNG export failed',e));}
+  exportTsv(){const {samples}=this.data();const rows=[['sample','virus','family','genus','species','accession','segments','length','reads','rpkmf','pct_covered','mean_depth','read_identity','consensus_identity','pi','genomad_score','hallmarks','confidence','taxonomy_adjusted']];this.filteredDets().forEach(d=>{const v=d.virus;rows.push([d.sample,v.n,v.f,v.g,v.sp,v.acc,v.segs.length,v.len,d.reads,d.rpkmf.toFixed(2),d.pct,d.meanCov.toFixed(1),d.rid,d.cid,d.pi,d.gv,d.hall,TIERS[d.tier],d.adj]);});this.download(new Blob([this.tsv(rows)],{type:'text/tab-separated-values'}),'mgviz_detections.tsv');}
+  exportHeatTsv(){const {samples,viruses}=this.data();const rows=[['virus','family',...samples.map(s=>s.name)]];viruses.forEach(v=>rows.push([v.n,v.f,...samples.map(s=>v.det[s.name]?v.det[s.name].rpkmf.toFixed(2):0)]));this.download(new Blob([this.tsv(rows)],{type:'text/tab-separated-values'}),'mgviz_sample_by_taxon_rpkmf.tsv');}
+  // ---------- sparkline helpers
+  spark(covs,w,h){const d3=window.d3;if(!d3)return{fill:'',line:'',sep:''};const all=covs.flat();const max=Math.max(1,d3.max(all));const y=d3.scaleSymlog().domain([0,max]).range([h-1,2]);const total=all.length;const x=i=>(i/total)*w;const fill=d3.area().x((d,i)=>x(i)).y0(h).y1(d=>y(d)).curve(d3.curveStepAfter)(all);const line=d3.line().x((d,i)=>x(i)).y(d=>y(d)).curve(d3.curveStepAfter)(all);let sep='',acc=0;covs.slice(0,-1).forEach(c=>{acc+=c.length;sep+=`M${x(acc)},0V${h}`;});return{fill,line,sep};}
+  // ---------- render
+  renderVals0(){const s=this.state,t=this.tv(),{samples,viruses,famOrder,vmap}=this.data();const d3=window.d3;const dets=this.dets();const nHigh=dets.filter(d=>d.tier===3).length;const nDet=dets.length;const seq=this.seq();
+    const PILL=[{bg:'transparent',fg:'var(--muted)',bs:'dashed',bc:'var(--line)'},{bg:'transparent',fg:'var(--muted)',bs:'solid',bc:'var(--line)'},{bg:'transparent',fg:'var(--fg)',bs:'solid',bc:'var(--fg)'},{bg:'var(--fg)',fg:'var(--panel)',bs:'solid',bc:'var(--fg)'}];
+    const tierPill=d=>{const p=PILL[d.tier];return{tier:TIERS[d.tier],tierBg:p.bg,tierFg:p.fg,tierBs:p.bs,tierBc:p.bc};};
+    const open=v=>()=>this.setState({selVirus:v.id});
+    const abund=d=>Math.log10(d.rpkmf+1)/Math.log10(this.data().maxRpkmf+1);
+    const hasSel=!!(s.selSample||s.selFamily||s.search||s.minTier);
+    const confMin=Math.max(2,s.minTier);
+    const sq=s.sampleQ.toLowerCase();
+    const many=samples.length>12;const samplesOpen=s.samplesOpen??!many;
+    const sampleGroups=SAMPLE_TYPES.map(ty=>{const all=samples.filter(x=>x.type===ty);const it=all.filter(x=>!sq||x.name.toLowerCase().includes(sq));const tOpen=s.typeOpen[ty]??(!many||!!sq||all.some(x=>x.name===s.selSample));return{type:ty,count:String(all.length),caret:tOpen?'▾':'▸',toggle:()=>this.setState({typeOpen:{...s.typeOpen,[ty]:!tOpen}}),items:tOpen?it.map(x=>{const on=s.selSample===x.name;return{name:x.name,n:String(dets.filter(d=>d.sample===x.name&&d.tier>=confMin).length),bg:on?'var(--sel)':'transparent',weight:on?600:400,click:()=>this.setState({selSample:on?null:x.name})};}):[],nMatch:it.length};}).filter(g=>g.nMatch);
+    const allSamples={n:String(new Set(dets.filter(d=>d.tier>=confMin).map(d=>d.virus.id)).size),bg:s.selSample?'transparent':'var(--sel)',weight:s.selSample?400:600,click:()=>this.setState({selSample:null})};
+    const FAM_PEEK=5;const famsAll=famOrder.map(f=>{const on=s.selFamily===f;return{f,name:f,n:String(viruses.filter(v=>v.f===f).length),bg:on?'var(--sel)':'transparent',weight:on?600:400,click:()=>this.setState({selFamily:on?null:f})};});
+    const famItems=s.famsOpen?famsAll:famsAll.filter((x,i)=>i<FAM_PEEK||x.f===s.selFamily);
+    const allFams={n:String(viruses.length),bg:s.selFamily?'transparent':'var(--sel)',weight:s.selFamily?400:600,click:()=>this.setState({selFamily:null})};
+    const minTiers=TIERS.map((l,i)=>({label:l,click:()=>this.setState({minTier:i}),bg:s.minTier===i?'var(--fg)':'transparent',fg:s.minTier===i?'var(--panel)':'var(--muted)'}));
+    const minTierNote=['Showing every call, including trace hits (< 10 reads).','Hiding trace hits. Low = at least 10 reads.','Medium and up: ≥ 40% of the genome covered and ≥ 50 reads.','High only: ≥ 80% covered, ≥ 500 reads, ≥ 90% read identity, geNomad ≥ 0.8.'][s.minTier];
+    const LAY=[['rect','Tree'],['radial','Radial figure'],['comp','Composition']];
+    const layouts=LAY.map(([k,label],i)=>({label,click:()=>{this.treeT=null;this.setState(k==='comp'&&s.treeValue==='pct'?{treeLayout:k,treeValue:'reads'}:{treeLayout:k});},bg:s.treeLayout===k?'var(--sel)':'var(--panel)',fg:s.treeLayout===k?'var(--fg)':'var(--muted)',weight:s.treeLayout===k?600:400,sep:i?'var(--line)':'transparent'}));
+    const ringLegend=s.treeLayout==='comp'?'':s.treeLayout==='rect'?'One column per sample · darker = more · blank = not detected · dot size = reads':('One ring per '+(samples.length>12?'sample type (mean)':'sample')+' · bar height = value · no bar = not detected');
+    const treeDesc={rect:'Where each detection sits in viral taxonomy, and which samples have it. Families are shaded; collapse any family to a wedge.',radial:'The same taxonomy as a publication figure: rank guides, family arcs and one bar ring per sample. Export as SVG or PNG.',comp:'How much of each sample is which family, genus and virus, as a share of viral reads.'}[s.treeLayout];
+    const treeFoot={rect:'Hover a virus for its lineage and per-sample numbers. Click a virus to open its genome; click a family name to collapse or expand it. Scroll to zoom, drag to pan.',radial:'Dashed circles mark the family, genus and virus levels. Coloured arcs outside the rings mark families; click one to collapse it. Sample names sit in the gap at the top.',comp:'Left: the current focus (all samples, or the selected one) split by family, genus and virus. Right: every sample as a 100% bar, so samples can be compared at a glance.'}[s.treeLayout];
+    const TAB=[['overview','Overview','What was found in each sample, how confident each call is, and what to double-check.'],['table','Detections','Every call with the evidence behind it. Hover a confidence label to see why it got that rating; click a virus to open its genome.'],['tree','Taxonomy',treeDesc],['heat','Samples × taxa','Which samples share which viruses. Rows and columns are clustered so similar samples and co-occurring viruses sit together.']];
+    const tabs=TAB.map(([k,label])=>({label,weight:s.tab===k?600:400,color:s.tab===k?'var(--fg)':'var(--muted)',under:s.tab===k?'var(--fg)':'transparent',click:()=>this.setState({tab:k})}));
+    const tabDesc=TAB.find(x=>x[0]===s.tab)[2];
+    const focusText='Focus: '+[s.selSample||'all samples',s.selFamily,s.minTier?`≥ ${TIERS[s.minTier]}`:null,s.search?`“${s.search}”`:null].filter(Boolean).join(' · ');
+    let ovCards=[],shared=[],sharedCols=[],flags=[],sharedNote='';
+    if(s.tab==='overview'){
+      const ovSamples=s.selSample?samples.filter(x=>x.name===s.selSample):samples;
+      ovCards=ovSamples.map(x=>{const sd=dets.filter(d=>d.sample===x.name&&this.matchV(d.virus)).sort((a,b)=>b.rpkmf-a.rpkmf);const conf=sd.filter(d=>d.tier>=confMin),rest=sd.filter(d=>d.tier<confMin);const top=conf.slice(0,3);
+        const story=conf.length===0?(sd.length?`No confident call; ${sd.length} weak hit${sd.length>1?'s':''} only.`:'No viruses detected.'):conf.length===1?`${conf[0].virus.n} is the only confident detection.`:`${conf[0].virus.n} dominates; ${conf[1].virus.n}${conf.length>2?` and ${conf.length-2} more`:''} also present.`;
+        return{name:x.name,type:x.type,story,click:()=>this.setState({selSample:x.name,tab:'table'}),top:top.map(d=>({name:d.virus.n,...tierPill(d),bar:Math.max(3,Math.round(abund(d)*56))+'px',rpkmf:fmtR(d.rpkmf),open:open(d.virus)})),more:(conf.length>3?`+${conf.length-3} more confident · `:'')+(rest.length?`${rest.length} weaker hit${rest.length===1?'':'s'} hidden`:'no weaker hits'),qcText:`${fmt(x.raw)} raw → ${fmt(x.filtered)} non-host → ${fmt(x.mapped)} viral reads`,qHost:(x.filtered/x.raw*100).toFixed(1)+'%',qMap:Math.max(0.8,x.mapped/x.raw*100).toFixed(2)+'%'};});
+      const sharedV=viruses.filter(v=>v.nS>=2&&this.matchV(v)).sort((a,b)=>b.nS-a.nS||b.tot-a.tot).slice(0,14);const colW=samples.length>12?'14px':'52px';
+      sharedCols=samples.map(x=>({label:samples.length>12?'':x.name,w:colW}));
+      shared=sharedV.map(v=>({name:v.n,open:open(v),cells:samples.map(x=>{const d=v.det[x.name];const a=d?abund(d):0;return{w:colW,bg:d?seq(Math.max(.1,a)):'var(--line2)',fg:d?this.inkOn(seq(Math.max(.1,a))):t.muted,text:d&&samples.length<=12?fmt(d.reads):'',title:`${x.name}: ${d?fmt(d.reads)+' reads, '+TIERS[d.tier]:'not detected'}`};})}));
+      sharedNote=sharedV.length?`colour = abundance · number = reads · blank = not detected`:'No virus is shared between samples.';
+      dets.filter(d=>this.matchV(d.virus)&&(!s.selSample||d.sample===s.selSample)).forEach(d=>{const v=d.virus;if(d.adj&&d.tier>=1)flags.push({kind:'DIVERGENT',fg:t.attn,bc:t.attn,name:v.n,text:`in ${d.sample}: consensus identity ${d.cid}%, below the species threshold. Possibly a novel variant.`,open:open(v),p:1});else if(d.tier>=2&&d.gv<0.8)flags.push({kind:'LOW GENOMAD',fg:'var(--fg)',bc:'var(--line)',name:v.n,text:`in ${d.sample}: geNomad score ${d.gv.toFixed(2)} despite ${d.pct}% coverage.`,open:open(v),p:2});else if(d.tier>=2&&v.f==='Circoviridae')flags.push({kind:'CHECK SOURCE',fg:'var(--fg)',bc:'var(--line)',name:v.n,text:`in ${d.sample}: a porcine virus in a human sample. Dietary or reagent contamination?`,open:open(v),p:3});});flags.sort((a,b)=>a.p-b.p);flags=flags.slice(0,6);}
+    const fd=this.filteredDets();let tableGroups=[],cols=[],allKeys=[],anyExp=false;
+    if(s.tab==='table'&&false){
+      const sortKey=s.sortKey,sd=s.sortDir;const kf=d=>sortKey==='name'?d.virus.n:sortKey==='tier'?d.tier*1e6+d.rpkmf:d[sortKey];const sorter=(a,b)=>{const ka=kf(a),kb=kf(b);return(ka>kb?1:ka<kb?-1:0)*sd;};
+      const groupsBy=s.selSample?samples.filter(x=>x.name===s.selSample):samples;
+      tableGroups=groupsBy.map(x=>{const rows=fd.filter(d=>d.sample===x.name).sort(sorter);if(!rows.length)return null;const nC=rows.filter(d=>d.tier>=2).length;return{sample:x.name,summary:`${x.type} · ${rows.length} call${rows.length>1?'s':''}, ${nC} confident · ${fmt(x.filtered)} non-host reads, ${fmt(x.mapped)} viral`,click:()=>this.setState({selSample:s.selSample===x.name?null:x.name}),rows:rows.map(d=>{const v=d.virus;const key=v.id+'|'+d.sample;const exp=!!s.expanded[key];const sp=(d._sp&&d._sp.line)?d._sp:(d._sp=this.spark(d.segs.map(q=>q.cov),170,36));
+        return{name:v.n,lineage:`${v.f} · ${v.g}`,multi:v.segs.length>1,segLabel:`${v.segs.length} segments ${exp?'▴':'▾'}`,toggle:()=>this.setState({expanded:{...s.expanded,[key]:!exp}}),open:open(v),bg:s.selVirus===v.id?'var(--sel)':'transparent',...tierPill(d),
+          tipOpen:s.tierKey===key,tipOn:()=>this.setState({tierKey:key}),tipOff:()=>this.setState({tierKey:null}),tipTitle:`Why “${TIERS[d.tier]}”`,
+          checks:[['Genome covered ≥ 80%',d.pct>=80,d.pct+'%'],['Aligned reads ≥ 500',d.reads>=500,fmtI(d.reads)],['Read identity ≥ 90%',d.rid>=90,d.rid.toFixed(1)+'%'],['geNomad score ≥ 0.8',d.gv>=.8,d.gv.toFixed(2)]].map(([label,ok,val])=>({label,val,mark:ok?'✓':'✕',mc:ok?'var(--fg)':t.attn})),
+          reads:fmtI(d.reads),rpkmf:fmtR(d.rpkmf),bar:Math.max(1,abund(d)*100).toFixed(1)+'%',sparkFill:sp.fill,sparkLine:sp.line,sparkSep:sp.sep,pct:d.pct+'%',rid:d.rid.toFixed(1)+'%',cid:d.cid.toFixed(1)+'%',adj:d.adj,gv:d.gv.toFixed(2),hall:String(d.hall),expanded:exp,
+          segRows:d.segs.map(sg=>{const ss=(sg._sp&&sg._sp.line)?sg._sp:(sg._sp=this.spark([sg.cov],170,22));return{label:sg.label,gene:sg.gene||'',acc:sg.acc,len:fmtI(sg.len)+' bp',reads:fmtI(sg.reads),depth:sg.meanCov.toFixed(0)+'× mean',sparkFill:ss.fill,sparkLine:ss.line,pct:sg.pct+'%'};})};})};}).filter(Boolean);
+      cols=[['name','Virus','left'],['tier','Confidence','left'],['reads','Reads','right'],['rpkmf','Abundance (RPKMF)','left'],['pct','Coverage along genome','left'],['rid','Identity to reference','left'],['gv','geNomad','left']].map(([k,label,align])=>({label:label+(sortKey===k?(sd<0?' ▾':' ▴'):''),align,color:sortKey===k?'var(--fg)':'var(--muted)',click:()=>this.setState({sortKey:k,sortDir:sortKey===k?-sd:(k==='name'?1:-1)})}));
+      allKeys=fd.filter(d=>d.virus.segs.length>1).map(d=>d.virus.id+'|'+d.sample);anyExp=allKeys.some(k=>s.expanded[k]);}
+    let gv={lineage:[],samples:[],stats:[]};const v=s.selVirus?vmap[s.selVirus]:null;if(v){const d=this.curDet(v);gv={family:v.f,acc:v.acc,len:v.segs.length>1?`${v.segs.length} segments · ${fmt(v.len)} bp`:`${fmtI(v.len)} bp`,name:v.n,lineage:[['realm',v.realm],['order',v.order],['family',v.f],['genus',v.g],['species',v.sp]].map(([rank,name])=>({rank,name,weight:rank==='family'?600:400})),samples:Object.values(v.det).sort((a,b)=>b.rpkmf-a.rpkmf).map(x=>{const on=d.sample===x.sample;return{name:x.sample,border:on?'var(--fg)':'var(--line)',bg:on?'var(--sel)':'transparent',...tierPill(x),click:()=>this.setState({selSample:x.sample})};}),canCompare:v.nS>1,stats:[{k:'confidence',v:TIERS[d.tier],color:'var(--fg)',sub:`in ${d.sample}`},{k:'aligned reads',v:fmtI(d.reads),color:'var(--fg)',sub:`RPKMF ${fmtR(d.rpkmf)}`},{k:'covered',v:d.pct+'%',color:'var(--fg)',sub:`mean ${d.meanCov.toFixed(0)}×`},{k:'read identity',v:d.rid.toFixed(1)+'%',color:'var(--fg)',sub:'reads vs reference'},{k:'consensus identity',v:d.cid.toFixed(1)+'%',color:d.adj?t.attn:'var(--fg)',sub:d.adj?'below species threshold':'to reference'},{k:'diversity π',v:d.pi.toFixed(3),color:'var(--fg)',sub:`${(d.nfrac*100).toFixed(1)}% N in consensus`}],gvScore:d.gv.toFixed(2),gvBar:Math.round(d.gv*100)+'%',gvColor:'var(--fg)',gvText:`${d.hall} hallmark gene${d.hall===1?'':'s'} · classified as ${v.f}${d.adj?' (lineage downgraded)':''}`,covTitle:v.segs.length>1?`Coverage and ORFs per segment · ${d.sample}`:`Coverage and ORFs · ${d.sample}`,gridCols:v.segs.length>1?'repeat(auto-fill,minmax(250px,1fr))':'1fr'};}
+    const SW=Array.from(new Set([].concat(...Object.values(PALS),['#5b5f5c','#9aa09b'])));const isHex=x=>/^#[0-9a-f]{6}$/i.test(x);
+    const setFam=(f,c)=>{const fc={...s.famColors,[f]:c};this.setState({famColors:fc});this.saveColors(fc,s.paletteSel);};
+    const famColorRows=famOrder.map(f=>{const c=this.famColor(f);const ed=s.colorEdit===f;const isGrey=c===t.grey&&!s.famColors[f];return{name:f,n:String(viruses.filter(v=>v.f===f).length),color:c,hex:s.hexDrafts[f]??c,note:isGrey?'no colour yet':s.famColors[f]?'custom':'',editing:ed,ring:ed?'var(--fg)':'var(--line)',edit:()=>this.setState({colorEdit:ed?null:f}),onHex:e=>{const val=e.target.value.trim();const v2=val&&val[0]!=='#'?'#'+val:val;this.setState({hexDrafts:{...s.hexDrafts,[f]:val}});if(isHex(v2))setFam(f,v2.toLowerCase());},onPick:e=>{this.setState({hexDrafts:{...s.hexDrafts,[f]:e.target.value}});setFam(f,e.target.value);},swatches:SW.map(x=>({bg:x,ring:x.toLowerCase()===c.toLowerCase()?'var(--fg)':'transparent',click:()=>{this.setState({hexDrafts:{...s.hexDrafts,[f]:x}});setFam(f,x.toLowerCase());}})),clear:()=>{const fc={...s.famColors};delete fc[f];const hd={...s.hexDrafts};delete hd[f];this.setState({famColors:fc,hexDrafts:hd});this.saveColors(fc,s.paletteSel);}};});
+    const curPal=s.paletteSel||this.props.palette||'mgviz';
+    const palOptions=Object.keys(PALS).map(k=>({name:k,sw:PALS[k].slice(0,8).map(x=>({bg:x})),border:k===curPal?'var(--fg)':'var(--line)',weight:k===curPal?600:400,click:()=>{this.setState({paletteSel:k,famColors:{},hexDrafts:{}});this.saveColors({},k);}}));
+    const nCustom=Object.keys(s.famColors).length;
+    const colorUi={colorOpen:s.colorOpen,toggleColors:()=>this.setState({colorOpen:!s.colorOpen,colorEdit:null}),colorBtnBg:s.colorOpen?'var(--sel)':'var(--panel)',colorBtnLabel:nCustom?`Family colours · ${nCustom} custom`:'Family colours',famColorRows,palOptions,resetColors:()=>{this.setState({famColors:{},hexDrafts:{},paletteSel:null,colorEdit:null});this.saveColors({},null);},nGrey:String(famOrder.filter(f=>this.famColor(f)===t.grey).length)};
+    const nF=new Set(viruses.map(x=>x.f)).size;const col=this.effCollapsed();const nCol=Object.values(col).filter(Boolean).length;
+    return{headline:`${viruses.length} viruses across ${samples.length} sample${samples.length>1?'s':''}`,subline:`${nDet} detections, ${nHigh} high-confidence · ${nF} families · ${fmt(samples.reduce((a,x)=>a+x.filtered,0))} non-host reads · EsViritu DB v3.1 · mgviz 0.9`,
+      notEmbed:!this.props.embed,samplesOpen,samplesCaret:samplesOpen?'▾':'▸',samplesHead:samplesOpen?'confident hits':`${samples.length} in ${new Set(samples.map(x=>x.type)).size} types`,toggleSamplesOpen:()=>this.setState({samplesOpen:!samplesOpen}),samplesClosedSel:!samplesOpen&&!!s.selSample,selSampleName:s.selSample||'',famsCaret:s.famsOpen?'▾':'▸',famsHead:s.famsOpen?'viruses':`top ${Math.min(FAM_PEEK,famOrder.length)} of ${famOrder.length}`,toggleFamsOpen:()=>this.setState({famsOpen:!s.famsOpen}),famsMore:famOrder.length>FAM_PEEK,famsMoreLabel:s.famsOpen?'Show fewer':`Show all ${famOrder.length} families`,sampleGroups,allSamples,famItems,allFams,minTiers,minTierNote,manySamples:samples.length>12,sampleQ:s.sampleQ,setSampleQ:e=>this.setState({sampleQ:e.target.value}),search:s.search,setSearch:e=>this.setState({search:e.target.value}),hasSel,clearSel:()=>this.setState({selSample:null,selFamily:null,search:'',minTier:0}),
+      tabs,tabDesc,focusText,isOverview:s.tab==='overview',isTable:s.tab==='table',isTree:s.tab==='tree',isHeat:s.tab==='heat',
+      ovCards,shared,sharedCols,sharedNote,flags,noFlags:s.tab==='overview'&&!flags.length,
+      toggleShared:()=>this.setState({sharedOnly:!s.sharedOnly}),sharedBorder:s.sharedOnly?'var(--fg)':'var(--line)',sharedBg:s.sharedOnly?'var(--sel)':'var(--panel)',expandAll:()=>{const e={};if(!anyExp)allKeys.forEach(k=>e[k]=true);this.setState({expanded:e});},expandLabel:anyExp?'Collapse segments':'Expand all segments',tableCount:`${fd.length} of ${nDet} calls · ${new Set(fd.map(d=>d.virus.id)).size} viruses`,cols,tableGroups,exportAllTsv:()=>this.exportTsv(),
+      treeRef:this.treeRef,tipRef:this.tipRef,tipRef2:this.tipRef2,heatRef:this.heatRef,genRef:this.genRef,...colorUi,layouts,notComp:s.treeLayout!=='comp',valueLabel:s.treeLayout==='comp'?'Size by':s.treeLayout==='rect'?'Columns show':'Rings show',treeFoot,treeValue:s.treeValue,setTreeValue:e=>this.setState({treeValue:e.target.value}),collapseAll:()=>{const c={};if(nCol<famOrder.length)famOrder.forEach(f=>c[f]=true);this.setState({collapsed:c});},collapseLabel:nCol<famOrder.length?'Collapse all families':'Expand all families',resetZoom:()=>{this.treeT=null;if(this.treeSvg&&this._zoom)this.treeSvg.call(this._zoom.transform,d3.zoomIdentity);},seqLo:t.seq[0],seqHi:t.seq[1],ringLegend,treeNote:`${viruses.length} genomes · ${nF} families${nCol?` · ${nCol} collapsed`:''}`,exportTreeSvg:()=>this.exportFig(this.treeRef.current,'mgviz_tree','svg'),exportTreePng:()=>this.exportFig(this.treeRef.current,'mgviz_tree','png'),
+      exportHeatSvg:()=>this.exportFig(this.heatRef.current,'mgviz_sample_by_taxon','svg'),exportHeatPng:()=>this.exportFig(this.heatRef.current,'mgviz_sample_by_taxon','png'),exportHeatTsv:()=>this.exportHeatTsv(),
+      drawerOpen:!!v,closeDrawer:()=>this.setState({selVirus:null,compare:false}),gv,toggleCompare:()=>this.setState({compare:!s.compare}),compareBorder:s.compare?'var(--fg)':'var(--line)',compareBg:s.compare?'var(--sel)':'transparent',exportGenSvg:()=>this.exportFig(this.genRef.current,'mgviz_genome','svg'),exportGenPng:()=>this.exportFig(this.genRef.current,'mgviz_genome','png')};}
+
+  curTool(center){const tl=this.state.treeTool;if(tl==='rotate'&&center==null)return'pan';return tl||(center!=null?'rotate':'pan');}
+  zoomFilter(ev){if(ev.type==='wheel')return true;if(ev.type==='dblclick')return false;return !ev.button&&this.curTool(this._toolCenter)==='pan';}
+  wrapZoom(svg){const d3=window.d3;const n=svg.node();const zg=document.createElementNS('http://www.w3.org/2000/svg','g');[...n.childNodes].slice(1).forEach(k=>zg.appendChild(k));n.appendChild(zg);const g=d3.select(zg);const zoom=d3.zoom().scaleExtent([0.5,12]).filter(ev=>this.zoomFilter(ev)).on('zoom',e=>{g.attr('transform',e.transform);this.treeT=e.transform;});svg.call(zoom).on('dblclick.zoom',null);this._zoom=zoom;if(this.treeT)svg.call(zoom.transform,this.treeT);this.installTools(svg,g,null);}
+  installTools(svg,g,center){const d3=window.d3;const node=svg.node();this._toolCenter=center;const curs={pan:'grab',rotate:"url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28' viewBox='0 0 28 28'%3E%3Cpath d='M21 8.5a9 9 0 1 0 2 6.5' fill='none' stroke='white' stroke-width='5' stroke-linecap='round'/%3E%3Cpath d='M21 8.5a9 9 0 1 0 2 6.5' fill='none' stroke='%231c201e' stroke-width='2.2' stroke-linecap='round'/%3E%3Cpath d='M23.5 3v7h-7z' fill='%231c201e' stroke='white' stroke-width='1.2' stroke-linejoin='round'/%3E%3C/svg%3E\") 14 14, grab",box:'crosshair'};const tool=()=>this.curTool(center);svg.style('cursor',curs[tool()]);svg.on('mousedown.cur',()=>{if(tool()==='pan')svg.style('cursor','grabbing');}).on('mouseup.cur',()=>svg.style('cursor',curs[tool()]));
+    const box=svg.append('rect').attr('fill','rgba(31,95,139,.08)').attr('stroke','#1f5f8b').attr('stroke-width',1.5).attr('stroke-dasharray','5 3').attr('display','none').attr('pointer-events','none');let st=null;
+    const drag=d3.drag().filter(ev=>!ev.button&&tool()!=='pan').on('start',ev=>{const p=d3.pointer(ev.sourceEvent,node);const T=d3.zoomTransform(node);this.hideTip(this.tipRef);if(tool()==='rotate'){const cs=T.apply([center,center]);st={m:'r',a0:Math.atan2(p[1]-cs[1],p[0]-cs[0]),cs,T,d:0};svg.style('cursor','grabbing');}else{st={m:'b',p0:p};box.attr('display',null).attr('x',p[0]).attr('y',p[1]).attr('width',0).attr('height',0);}})
+      .on('drag',ev=>{if(!st)return;const p=d3.pointer(ev.sourceEvent,node);if(st.m==='r'){const a=Math.atan2(p[1]-st.cs[1],p[0]-st.cs[0]);st.d=(a-st.a0)*180/Math.PI;g.attr('transform',st.T.toString()+' rotate('+st.d+','+center+','+center+')');}else{box.attr('x',Math.min(p[0],st.p0[0])).attr('y',Math.min(p[1],st.p0[1])).attr('width',Math.abs(p[0]-st.p0[0])).attr('height',Math.abs(p[1]-st.p0[1]));st.p1=p;}})
+      .on('end',()=>{if(!st)return;const S=st;st=null;if(S.m==='r'){svg.style('cursor',curs.rotate);if(Math.abs(S.d)>0.5){const r=(((Math.round((this.state.treeRot||0)+S.d))%360)+360)%360;this.setState({treeRot:r,zoomFam:''});}else g.attr('transform',S.T.toString());return;}
+        box.attr('display','none');if(!S.p1)return;const x0=Math.min(S.p0[0],S.p1[0]),x1=Math.max(S.p0[0],S.p1[0]),y0=Math.min(S.p0[1],S.p1[1]),y1=Math.max(S.p0[1],S.p1[1]);if(x1-x0<8||y1-y0<8)return;const T=d3.zoomTransform(node);const a=T.invert([x0,y0]),b=T.invert([x1,y1]);const bw=b[0]-a[0],bh=b[1]-a[1];const vb=(svg.attr('viewBox')||'').split(/[ ,]+/).map(Number);const vw=vb[2],vh=vb[3];const tall=vh>1300;const k=Math.max(0.5,Math.min(12,tall?vw/bw*0.95:Math.min(vw/bw,vh/bh)*0.95));const cyT=tall?(y0+y1)/2:vh/2;svg.transition().duration(400).call(this._zoom.transform,d3.zoomIdentity.translate(vw/2-k*(a[0]+bw/2),cyT-k*(a[1]+bh/2)).scale(k));});
+    svg.call(drag);svg.on('dblclick.reset',()=>{this.treeT=null;svg.transition().duration(300).call(this._zoom.transform,d3.zoomIdentity);});}
+  zoomBy(f){if(this.treeSvg&&this._zoom)this.treeSvg.transition().duration(250).call(this._zoom.scaleBy,f);}
+  zoomToFam(f){const d3=window.d3;if(!this.treeG||!this.treeSvg||!this._zoom)return;const el=this.treeG.select(`.clade[data-f="${f}"]`).node();if(!el)return;const b=el.getBBox();const m=el.parentNode.transform.baseVal.consolidate();const ox=m?m.matrix.e:0,oy=m?m.matrix.f:0;const vb=(this.treeSvg.attr('viewBox')||'').split(/[ ,]+/).map(Number);const vw=vb[2],vh=vb[3];const k=Math.max(1,Math.min(6,0.9*Math.min(vw/b.width,vh/b.height)));const tx=vw/2-k*(ox+b.x+b.width/2),ty=vh/2-k*(oy+b.y+b.height/2);this.treeSvg.transition().duration(450).call(this._zoom.transform,d3.zoomIdentity.translate(tx,ty).scale(k));}
+  heatLim(){const v=this.state.heatTop;if(v==='all')return 0;if(v==='auto')return this.data().viruses.length>60?50:0;return +v;}
+  typeShades(){return this.tv().dark?['#e4e6e0','#a3a9a3','#6b7370','#3a403d']:['#2b302d','#7d847f','#b4b9b3','#dfe2db'];}
+  rowVals(d,gb,tierPill,abund,open){const s=this.state,t=this.tv();const v=d.virus;const key=v.id+'|'+d.sample;const exp=!!s.expanded[key];const sp=(d._sp&&d._sp.line)?d._sp:(d._sp=this.spark(d.segs.map(q=>q.cov),170,36));const smp=this._smap[d.sample];
+    const fl=this._flagOf?this._flagOf(d):null;return{hasFlag:!!fl&&fl[0]!=='DIVERGENT',flagKind:fl?fl[0]:'',flagWhy:fl?fl[1]:'',name:gb==='virus'?d.sample:v.n,font:gb==='virus'?'var(--mono)':'var(--sans)',lineage:gb==='virus'?smp.type+' · '+fmt(smp.filtered)+' non-host reads':v.f+' · '+v.g,multi:v.segs.length>1,segLabel:v.segs.length+' segments '+(exp?'▴':'▾'),toggle:()=>this.setState({expanded:{...s.expanded,[key]:!exp}}),open:open(v),bg:s.selVirus===v.id?'var(--sel)':'transparent',...tierPill(d),
+      tipOpen:s.tierKey===key,tipOn:()=>this.setState({tierKey:key}),tipOff:()=>this.setState({tierKey:null}),tipTitle:'Why “'+TIERS[d.tier]+'”',
+      checks:[['Genome covered ≥ 80%',d.pct>=80,d.pct+'%'],['Aligned reads ≥ 500',d.reads>=500,fmtI(d.reads)],['Read identity ≥ 90%',d.rid>=90,d.rid.toFixed(1)+'%'],['geNomad score ≥ 0.8',d.gv>=.8,d.gv.toFixed(2)]].map(([label,ok,val])=>({label,val,mark:ok?'✓':'✕',mc:ok?'var(--fg)':t.attn})),
+      reads:fmtI(d.reads),rpkmf:fmtR(d.rpkmf),bar:Math.max(1,abund(d)*100).toFixed(1)+'%',sparkFill:sp.fill,sparkLine:sp.line,sparkSep:sp.sep,pct:d.pct+'%',rid:d.rid.toFixed(1)+'%',cid:d.cid.toFixed(1)+'%',adj:d.adj,gv:d.gv.toFixed(2),hall:String(d.hall),expanded:exp,
+      segRows:exp?d.segs.map(sg=>{const ss=(sg._sp&&sg._sp.line)?sg._sp:(sg._sp=this.spark([sg.cov],170,22));return{label:sg.label,gene:sg.gene||'',acc:sg.acc,len:fmtI(sg.len)+' bp',reads:fmtI(sg.reads),depth:sg.meanCov.toFixed(0)+'× mean',sparkFill:ss.fill,sparkLine:ss.line,pct:sg.pct+'%'};}):[]};}
+  renderVals(){const o=this.renderVals0();const s=this.state,t=this.tv(),{samples,viruses}=this.data();const dets=this.dets();const N=samples.length;const many=N>12;const seq=this.seq();const confMin=Math.max(2,s.minTier);this._smap=Object.fromEntries(samples.map(x=>[x.name,x]));
+    const abund=d=>Math.log10(d.rpkmf+1)/Math.log10(this.data().maxRpkmf+1);
+    const PILL=[{bg:'transparent',fg:'var(--muted)',bs:'dashed',bc:'var(--line)'},{bg:'transparent',fg:'var(--muted)',bs:'solid',bc:'var(--line)'},{bg:'transparent',fg:'var(--fg)',bs:'solid',bc:'var(--fg)'},{bg:'var(--fg)',fg:'var(--panel)',bs:'solid',bc:'var(--fg)'}];
+    const tierPill=d=>{const p=PILL[d.tier];return{tier:TIERS[d.tier],tierBg:p.bg,tierFg:p.fg,tierBs:p.bs,tierBc:p.bc};};const open=v=>()=>this.setState({selVirus:v.id});
+    const out={fewSamples:!many,manySamplesOv:many};
+    const q=s.ovQ.trim().toLowerCase();const vq=v=>!q||v.n.toLowerCase().includes(q)||v.f.toLowerCase().includes(q)||v.g.toLowerCase().includes(q);
+    if(s.tab==='overview'){out.ovQ=s.ovQ;out.setOvQ=e=>this.setState({ovQ:e.target.value,ovLimit:20});out.clearOvQ=()=>this.setState({ovQ:''});out.hasOvQ=!!q;out.ovQNote='';const typesPresent=SAMPLE_TYPES.filter(ty=>samples.some(x=>x.type===ty));const hit=(v,x)=>v.det[x.name]&&v.det[x.name].tier>=s.minTier;
+      const pv0=viruses.filter(v=>this.matchV(v)&&(vq(v)||samples.some(x=>v.det[x.name]&&(x.name.toLowerCase().includes(q)||x.type.includes(q))))).map(v=>({v,k:samples.filter(x=>hit(v,x)).length})).filter(q=>q.k>=(many?1:2)).sort((a,b)=>b.k-a.k||b.v.tot-a.v.tot);const pv=pv0.slice(0,many?15:14);const pw=k=>Math.max(2,Math.round(k/N*28))+'px';
+      out.sharedTitle=many?'Most prevalent viruses':'Shared across samples';
+      if(many){out.sharedCols=typesPresent.map(ty=>({label:ty,w:'58px'}));out.shared=pv.map(({v,k})=>({name:v.n,prev:k+'/'+N,prevW:pw(k),open:open(v),cells:typesPresent.map(ty=>{const L=samples.filter(x=>x.type===ty);const kk=L.filter(x=>hit(v,x)).length;const f=kk/L.length;const cb=kk?seq(Math.max(.1,f)):null;return{w:'58px',bg:cb||'var(--line2)',fg:cb?this.inkOn(cb):t.muted,text:kk?Math.round(f*100)+'%':'',title:ty+': detected in '+kk+' of '+L.length+' samples'};})}));out.sharedNote=pv.length?'samples = detected in · cell = % of samples of that type':'No detections in the current focus.';}
+      else{out.sharedCols=samples.map(x=>({label:x.name,w:'52px'}));out.shared=pv.map(({v,k})=>({name:v.n,prev:k+'/'+N,prevW:pw(k),open:open(v),cells:samples.map(x=>{const d=v.det[x.name];const a=d?abund(d):0;return{w:'52px',bg:d?seq(Math.max(.1,a)):'var(--line2)',fg:d?this.inkOn(seq(Math.max(.1,a))):t.muted,text:d?fmt(d.reads):'',title:x.name+': '+(d?fmt(d.reads)+' reads, '+TIERS[d.tier]:'not detected')};})}));out.sharedNote=pv.length?'colour = abundance · number = reads · blank = not detected':'No virus is shared between samples.';}
+      const fl={};dets.filter(d=>this.matchV(d.virus)&&(!s.selSample||d.sample===s.selSample)).forEach(d=>{const v=d.virus;let kind=null,p=0;if(d.adj&&d.tier>=1){kind='DIVERGENT';p=1;}else if(d.pct>=60&&d.gv<0.6){kind='LOW GENOMAD';p=2;}else if(d.tier>=2&&v.f==='Circoviridae'&&/orcine/.test(v.n)){kind='CHECK SOURCE';p=3;}if(!kind)return;const key=kind+v.id;(fl[key]=fl[key]||{kind,p,v,ds:[]}).ds.push(d);});
+      const fg=Object.values(fl).sort((a,b)=>a.p-b.p||b.ds.length-a.ds.length);
+      {const tag=(q?'_search-'+q.replace(/[^a-z0-9]+/g,'-'):'')+(s.selSample?'_'+s.selSample:'')+(s.selFamily?'_'+s.selFamily:'');const mk=(name,rowsFn,ref)=>{const n=()=>rowsFn().length-1;return{title:'Exports all '+(rowsFn().length-1)+' rows in the current focus (not only the rows on screen)',csv:()=>this.exportRows(rowsFn(),name+tag,'csv'),tsv:()=>this.exportRows(rowsFn(),name+tag,'tsv'),png:()=>this.exportNode(ref.current,name+tag)};};
+        const sRows=()=>{const r=[['sample','type','raw_reads','non_host_reads','viral_reads','viral_pct_of_non_host','confident_viruses','weaker_calls','most_abundant_virus','most_abundant_rpkmf']];samples.filter(x=>(!s.selSample||x.name===s.selSample)&&(!q||x.name.toLowerCase().includes(q)||x.type.includes(q)||dets.some(d=>d.sample===x.name&&vq(d.virus)))).forEach(x=>{const sd=dets.filter(d=>d.sample===x.name&&this.matchV(d.virus)).sort((a,b)=>b.rpkmf-a.rpkmf);const c=sd.filter(d=>d.tier>=confMin);r.push([x.name,x.type,x.raw,x.filtered,x.mapped,(x.mapped/x.filtered*100).toFixed(3),c.length,sd.length-c.length,c[0]?c[0].virus.n:'',c[0]?c[0].rpkmf.toFixed(2):'']);});return r;};
+        const tps=SAMPLE_TYPES.filter(ty=>samples.some(x=>x.type===ty));const pRows=()=>{const r=[['virus','family','genus','samples_detected','samples_total','prevalence_pct',...tps.map(ty=>ty+'_pct'),'total_reads']];pv0.forEach(({v,k})=>r.push([v.n,v.f,v.g,k,N,(k/N*100).toFixed(1),...tps.map(ty=>{const L=samples.filter(x=>x.type===ty);return(L.filter(x=>hit(v,x)).length/L.length*100).toFixed(1);}),v.tot]));return r;};
+        const fRows=()=>{const r=[['flag','virus','family','sample','reads','pct_covered','read_identity','consensus_identity','genomad']];fg.forEach(g=>g.ds.forEach(d=>r.push([g.kind,g.v.n,g.v.f,d.sample,d.reads,d.pct,d.rid,d.cid,d.gv])));return r;};
+        out.exSamples=mk('mgviz_sample_summary',sRows,many?this.ovSamplesRef:this.ovCardsRef);out.exShared=mk(many?'mgviz_virus_prevalence':'mgviz_shared_viruses',pRows,this.ovSharedRef);out.exFlags=mk('mgviz_flags',fRows,this.ovFlagsRef);}out.flags=fg.slice(0,6).map(g=>{const d=g.ds[0];const where=g.ds.length>1?'in '+g.ds.length+' samples (e.g. '+d.sample+')':'in '+d.sample;const txt=g.kind==='DIVERGENT'?where+': consensus identity '+d.cid+'%, below the species threshold. Possibly a novel variant.':g.kind==='LOW GENOMAD'?where+': geNomad score '+d.gv.toFixed(2)+' despite '+d.pct+'% coverage.':where+': a porcine virus in human samples. Dietary or reagent contamination?';return{kind:g.kind,fg:g.p===1?t.attn:'var(--fg)',bc:g.p===1?t.attn:'var(--line)',name:g.v.n,text:txt,open:open(g.v)};});out.noFlags=!out.flags.length;
+      if(many){const rows=samples.filter(x=>!s.selSample||x.name===s.selSample).map(x=>{const sd=dets.filter(d=>d.sample===x.name&&this.matchV(d.virus)&&d.tier>=confMin).sort((a,b)=>b.rpkmf-a.rpkmf);const sMatch=!q||x.name.toLowerCase().includes(q)||x.type.includes(q);const vm=q&&!sMatch?sd.filter(d=>vq(d.virus)):[];return{x,sd,frac:x.mapped/x.filtered,keep:sMatch||vm.length>0,vm};}).filter(r=>r.keep);const k=s.ovSort;
+        rows.sort((a,b)=>k==='name'?a.x.name.localeCompare(b.x.name):k==='type'?(SAMPLE_TYPES.indexOf(a.x.type)-SAMPLE_TYPES.indexOf(b.x.type)||a.x.name.localeCompare(b.x.name)):k==='hits'?b.sd.length-a.sd.length:k==='top'?((a.sd[0]?a.sd[0].virus.n:'~').localeCompare(b.sd[0]?b.sd[0].virus.n:'~')):b.frac-a.frac);
+        const mf=Math.max(...rows.map(r=>r.frac),1e-9);const lim=s.ovLimit;
+        out.sampleRows=rows.slice(0,lim).map(r=>({name:r.x.name,type:r.x.type,nonhost:'of '+fmt(r.x.filtered),frac:(r.frac*100<1?(r.frac*100).toFixed(2):(r.frac*100).toFixed(1))+'%',fracW:Math.max(1,Math.sqrt(r.frac/mf)*100).toFixed(1)+'%',hits:String(r.sd.length),top:r.vm.length?r.vm[0].virus.n:r.sd[0]?r.sd[0].virus.n:'—',top2:r.vm.length?fmt(r.vm[0].reads)+' reads · '+TIERS[r.vm[0].tier]+(r.vm.length>1?' · +'+(r.vm.length-1)+' matching':''):r.sd.length>1?'+'+(r.sd.length-1)+' more':'',click:()=>this.setState({selSample:r.x.name,tab:'table'}),openTop:r.vm.length?open(r.vm[0].virus):r.sd[0]?open(r.sd[0].virus):()=>{}}));out.ovQNote=q?rows.length+' of '+N+' samples match':'';
+        out.sampleMore=rows.length>lim;out.sampleMoreLabel='Show all '+rows.length+' samples';out.showMoreSamples=()=>this.setState({ovLimit:1e9});
+        out.ovCols=[['name','Sample'],['type','Type'],['viral','Viral reads, % of non-host'],['hits','Confident viruses'],['top','Most abundant virus']].map(([kk,l])=>({label:l+(k===kk?' ▾':''),color:k===kk?'var(--fg)':'var(--muted)',click:()=>this.setState({ovSort:kk})}));
+        const cnt=rows.map(r=>r.sd.length).sort((a,b)=>a-b);const med=cnt.length?cnt[Math.floor(cnt.length/2)]:0;const empty=cnt.filter(c=>c===0).length;
+        out.runStory=(q?'Among the '+rows.length+' matching samples, a typical one has ':N+' samples in '+typesPresent.length+' types. A typical sample has ')+med+' confident virus'+(med===1?'':'es')+(empty?', and '+empty+' have none':'')+'.'+(pv[0]?' '+pv[0].v.n+' is the most widespread ('+pv[0].k+' of '+N+' samples).':'');}}
+    if(s.tab==='overview'&&!many&&q){out.ovCards=(o.ovCards||[]).filter(c=>[c.name,c.type,c.story,...(c.top||[]).map(x=>x.name)].join(' ').toLowerCase().includes(q));out.ovQNote=out.ovCards.length+' of '+N+' samples match';}
+    const flagOf=d=>d.adj&&d.tier>=1?['DIVERGENT','Consensus identity '+d.cid+'% is below the species threshold: possibly a new variant']:d.pct>=60&&d.gv<0.6?['LOW GENOMAD','geNomad score '+d.gv.toFixed(2)+' despite '+d.pct+'% coverage: check that this is really viral']:d.tier>=2&&d.virus.f==='Circoviridae'&&/orcine/.test(d.virus.n)?['CHECK SOURCE','Animal virus in a human sample: dietary or reagent contamination?']:null;this._flagOf=flagOf;
+    if(s.tab==='table'){const fd0=this.filteredDets();const nFlag=fd0.filter(flagOf).length;const fd=s.flagOnly?fd0.filter(flagOf):fd0;out.toggleFlagOnly=()=>this.setState({flagOnly:!s.flagOnly,groupLimit:20});out.flagBorder=s.flagOnly?'var(--attn)':'var(--line)';out.flagBg=s.flagOnly?'var(--sel)':'var(--panel)';out.flagLabel='Needs checking · '+nFlag;const gb=s.groupBy==='auto'?(many?'virus':'sample'):s.groupBy;const sortKey=s.sortKey,sdir=s.sortDir;const kf=d=>sortKey==='name'?(gb==='virus'?d.sample:d.virus.n):sortKey==='tier'?d.tier*1e6+d.rpkmf:d[sortKey];const sorter=(a,b)=>{const ka=kf(a),kb=kf(b);return(ka>kb?1:ka<kb?-1:0)*sdir;};
+      const ROWS=gb==='virus'?5:8;const GL=s.groupLimit;let groups;
+      if(gb==='sample'){const by=s.selSample?samples.filter(x=>x.name===s.selSample):samples;groups=by.map(x=>({key:'s:'+x.name,x,rows:fd.filter(d=>d.sample===x.name)})).filter(g=>g.rows.length);}
+      else{const m=new Map();fd.forEach(d=>{if(!m.has(d.virus.id))m.set(d.virus.id,{key:'v:'+d.virus.id,v:d.virus,rows:[]});m.get(d.virus.id).rows.push(d);});groups=[...m.values()].sort((a,b)=>b.rows.length-a.rows.length||b.v.tot-a.v.tot);}
+      out.tableGroups=groups.slice(0,GL).map(g=>{const rows=g.rows.sort(sorter);const op=!!s.groupOpen[g.key];const vis=op?rows:rows.slice(0,ROWS);const nC=rows.filter(d=>d.tier>=2).length;
+        const head=gb==='sample'?{sample:g.x.name,font:'var(--mono)',summary:g.x.type+' · '+rows.length+' call'+(rows.length>1?'s':'')+', '+nC+' confident · '+fmt(g.x.filtered)+' non-host reads, '+fmt(g.x.mapped)+' viral',click:()=>this.setState({selSample:s.selSample===g.x.name?null:g.x.name})}:{sample:g.v.n,font:'var(--sans)',summary:g.v.f+' · in '+rows.length+' of '+N+' samples, '+nC+' confident · '+fmt(rows.reduce((a,d)=>a+d.reads,0))+' reads',click:open(g.v)};
+        return{...head,rows:vis.map(d=>this.rowVals(d,gb,tierPill,abund,open)),hasMore:rows.length>ROWS,more:()=>this.setState({groupOpen:{...s.groupOpen,[g.key]:!op}}),moreLabel:op?'Show fewer':'Show all '+rows.length+' '+(gb==='sample'?'calls':'samples')+' ▾'};});
+      out.moreGroups=groups.length>GL;out.moreGroupsLabel='Show '+Math.min(20,groups.length-GL)+' more '+(gb==='sample'?'samples':'viruses')+' · '+(groups.length-GL)+' not shown';out.showMoreGroups=()=>this.setState({groupLimit:GL+20});
+      out.groupOpts=[['sample','Sample'],['virus','Virus']].map(([k,l])=>({label:l,click:()=>this.setState({groupBy:k,groupLimit:20,groupOpen:{}}),bg:gb===k?'var(--fg)':'transparent',fg:gb===k?'var(--panel)':'var(--muted)'}));
+      out.cols=[['name',gb==='virus'?'Sample':'Virus','left'],['tier','Confidence','left'],['reads','Reads','right'],['rpkmf','Abundance (RPKMF)','left'],['pct','Coverage along genome','left'],['rid','Identity to reference','left'],['gv','geNomad','left']].map(([k,label,align])=>({label:label+(sortKey===k?(sdir<0?' ▾':' ▴'):''),align,color:sortKey===k?'var(--fg)':'var(--muted)',click:()=>this.setState({sortKey:k,sortDir:sortKey===k?-sdir:(k==='name'?1:-1)})}));
+      const allKeys=fd.filter(d=>d.virus.segs.length>1).map(d=>d.virus.id+'|'+d.sample);const anyExp=allKeys.some(k=>s.expanded[k]);out.expandAll=()=>{const e={};if(!anyExp)allKeys.forEach(k=>e[k]=true);this.setState({expanded:e});};out.expandLabel=anyExp?'Collapse segments':'Expand all segments';
+      out.tableCount=fd.length+' calls · '+new Set(fd.map(d=>d.virus.id)).size+' viruses · '+new Set(fd.map(d=>d.sample)).size+' samples';}
+    const hv=viruses.filter(v=>this.matchV(v)||!s.selSample&&!s.search&&!s.selFamily).length;const lim=this.heatLim();const shown=lim?Math.min(lim,hv):hv;
+    out.heatTop=s.heatTop;out.setHeatTop=e=>this.setState({heatTop:e.target.value});out.heatCols=s.heatCols;out.setHeatCols=e=>this.setState({heatCols:e.target.value});
+    out.heatNote='low → high · '+(shown<hv?shown+' of '+hv+' viruses, most prevalent first':hv+' viruses')+' · '+(s.heatCols==='type'?'columns grouped by sample type, rows clustered':'rows and columns clustered (average linkage, log abundance)');
+    const TSH=this.typeShades();out.showTypeLegend=N>1&&s.heatCols!=='type';out.typeLegend=SAMPLE_TYPES.filter(ty=>samples.some(x=>x.type===ty)).map(ty=>({name:ty,c:TSH[SAMPLE_TYPES.indexOf(ty)]}));
+    {const {famOrder}=this.data();out.isRadial=s.treeLayout==='radial';out.treeRot=String(s.treeRot);out.rotLabel=s.treeRot+'°';const setRot=v=>{const x=((Math.round(v)%360)+360)%360;this.setState({treeRot:x,zoomFam:''});};out.setTreeRot=e=>setRot(+e.target.value);out.rotL=()=>setRot(s.treeRot-15);out.rotR=()=>setRot(s.treeRot+15);out.zoomIn=()=>this.zoomBy(1.5);out.zoomOut=()=>this.zoomBy(1/1.5);out.zoomFam=s.zoomFam;out.zoomFamOpts=famOrder.map(f=>({v:f,label:f+' · '+viruses.filter(v=>v.f===f).length}));out.setZoomFam=e=>{const f=e.target.value;if(!f){this.treeT=null;this.setState({zoomFam:''},()=>{if(this.treeSvg&&this._zoom)this.treeSvg.transition().duration(350).call(this._zoom.transform,window.d3.zoomIdentity);});return;}const base=this._famMid&&this._famMid[f];const rot=base==null?s.treeRot:(((Math.round(90-base))%360)+360)%360;this.treeT=null;this.setState({treeRot:rot,zoomFam:f},()=>setTimeout(()=>this.zoomToFam(f),40));};out.resetZoom=()=>{this.treeT=null;this.setState({treeRot:0,zoomFam:''},()=>{if(this.treeSvg&&this._zoom)this.treeSvg.call(this._zoom.transform,window.d3.zoomIdentity);});};}
+    {const {famOrder}=this.data();const radial=s.treeLayout==='radial';const center=radial?0:null;const cur=this.curTool(center);const T=[['pan','Pan','Drag to move the figure'],['rotate','Rotate','Drag around the centre to turn the figure'],['box','Zoom to area','Drag a rectangle to zoom into it']].filter(x=>radial||x[0]!=='rotate');out.tools=T.map(([k,l,ti],i)=>({label:l,title:ti,click:()=>this.setState({treeTool:k}),bg:cur===k?'var(--fg)':'transparent',fg:cur===k?'var(--panel)':'var(--muted)',sep:i?'var(--line)':'transparent'}));out.toolHint=(cur==='rotate'?'Drag around the centre to rotate':cur==='box'?'Drag a rectangle to zoom into it':'Drag to pan')+' · scroll to zoom · double-click to reset';out.isComp=s.treeLayout==='comp';out.compTop=String(s.compTop);out.setCompTop=e=>this.setState({compTop:e.target.value});out.compSort=s.compSort;out.setCompSort=e=>this.setState({compSort:e.target.value});out.compSortFams=famOrder.map(f=>({v:f,label:'share of '+f}));}
+    out.treeCols=s.treeCols;out.setTreeCols=e=>{this.treeT=null;this.setState({treeCols:e.target.value});};
+    if(s.tab==='tree'&&s.treeLayout!=='comp'&&typeof o.ringLegend==='string'){const agg=this.ringGroups().some(g=>g.samples.length>1);if(agg&&!/sample type/.test(o.ringLegend))out.ringLegend=o.ringLegend.replace(/per sample/i,'per sample type (mean of detected samples)');}
+    out.ovCardsRef=this.ovCardsRef;out.ovSamplesRef=this.ovSamplesRef;out.ovSharedRef=this.ovSharedRef;out.ovFlagsRef=this.ovFlagsRef;
+    return{...o,...out};}
+}
+</script>
+</body>
+</html>

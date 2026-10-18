@@ -1,50 +1,31 @@
-# History files
-.Rhistory
-.Rapp.history
+# upstream clone kept only for reference
+EsViritu/
 
-# Session Data files
-.RData
-.RDataTmp
+# Python
+__pycache__/
+*.egg-info/
+.pytest_cache/
+build/
+dist/
+.venv/
 
-# User-specific files
-.Ruserdata
+# Nextflow
+.nextflow*
+pipeline/work/
+pipeline/results/
+work/
+results/
 
-# Example code in package build process
-*-Ex.R
+# generated reports and demo data
+*.html
+!design_handoff_mgviz_report/reference/*.html
+demo_esv/
+demo_*/
 
-# Output files from R CMD build
-/*.tar.gz
+# OS / editor
+.DS_Store
+.vscode/
+.idea/
 
-# Output files from R CMD check
-/*.Rcheck/
-
-# RStudio files
-.Rproj.user/
-
-# produced vignettes
-vignettes/*.html
-vignettes/*.pdf
-
-# OAuth2 token, see https://github.com/hadley/httr/releases/tag/v0.3
-.httr-oauth
-
-# knitr and R markdown default cache directories
-*_cache/
-/cache/
-
-# Temporary files created by R markdown
-*.utf8.md
-*.knit.md
-
-# R Environment Variables
-.Renviron
-.env
-
-# pkgdown site
-docs/
-
-# translation temp files
-po/*~
-
-# RStudio Connect folder
-rsconnect/
+# design brief archive
+docs/*.zip

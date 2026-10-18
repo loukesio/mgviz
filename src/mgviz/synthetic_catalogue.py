@@ -1,0 +1,95 @@
+"""Virus catalogue for the generative synthetic fixture (``mgviz demo -n 100``).
+
+Names are real viruses with plausible ICTV lineages so the report exercises
+family folding, genus nodes, segmented genomes and host-range flags. The
+numbers that matter for the report (reads, coverage, identity, geNomad) are
+generated at run time; nothing here is used by the report itself.
+"""
+
+# family -> (kingdom, phylum, class, order)
+HIGHER = {
+    "Picornaviridae": ("Orthornavirae", "Pisuviricota", "Pisoniviricetes", "Picornavirales"),
+    "Caliciviridae": ("Orthornavirae", "Pisuviricota", "Pisoniviricetes", "Picornavirales"),
+    "Coronaviridae": ("Orthornavirae", "Pisuviricota", "Pisoniviricetes", "Nidovirales"),
+    "Orthomyxoviridae": ("Orthornavirae", "Negarnaviricota", "Insthoviricetes", "Articulavirales"),
+    "Pneumoviridae": ("Orthornavirae", "Negarnaviricota", "Monjiviricetes", "Mononegavirales"),
+    "Paramyxoviridae": ("Orthornavirae", "Negarnaviricota", "Monjiviricetes", "Mononegavirales"),
+    "Adenoviridae": ("Bamfordvirae", "Preplasmiviricota", "Tectiliviricetes", "Rowavirales"),
+    "Sedoreoviridae": ("Orthornavirae", "Duplornaviricota", "Resentoviricetes", "Reovirales"),
+    "Astroviridae": ("Orthornavirae", "Pisuviricota", "Stelpaviricetes", "Stellavirales"),
+    "Parvoviridae": ("Shotokuvirae", "Cossaviricota", "Quintoviricetes", "Piccovirales"),
+    "Anelloviridae": ("Shotokuvirae", "Cressdnaviricota", "Arfiviricetes", "Cirlivirales"),
+    "Polyomaviridae": ("Shotokuvirae", "Cossaviricota", "Papovaviricetes", "Sepolyvirales"),
+    "Papillomaviridae": ("Shotokuvirae", "Cossaviricota", "Papovaviricetes", "Zurhausenvirales"),
+    "Orthoherpesviridae": ("Heunggongvirae", "Peploviricota", "Herviviricetes", "Herpesvirales"),
+    "Circoviridae": ("Shotokuvirae", "Cressdnaviricota", "Arfiviricetes", "Cirlivirales"),
+    "Genomoviridae": ("Shotokuvirae", "Cressdnaviricota", "Repensiviricetes", "Geplafuvirales"),
+    "Hepadnaviridae": ("Pararnavirae", "Artverviricota", "Revtraviricetes", "Blubervirales"),
+    "Virgaviridae": ("Orthornavirae", "Kitrinoviricota", "Alsuviricetes", "Martellivirales"),
+    "Solemoviridae": ("Orthornavirae", "Kitrinoviricota", "Tolucaviricetes", "Tolivirales"),
+    "Tombusviridae": ("Orthornavirae", "Kitrinoviricota", "Tolucaviricetes", "Tolivirales"),
+    "Intestiviridae": ("Heunggongvirae", "Uroviricota", "Caudoviricetes", "Crassvirales"),
+    "Microviridae": ("Sangervirae", "Phixviricota", "Malgrandaviricetes", "Petitvirales"),
+}
+
+# (family, genus, species, [strains], length, affinity letters s/n/w/c, prevalence, log-reads level)
+CATALOGUE = [
+    ("Picornaviridae", "Enterovirus", "Enterovirus alphacoxsackie", ["Enterovirus A71", "Coxsackievirus A16", "Coxsackievirus A6"], 7400, "snw", .10, 5.5),
+    ("Picornaviridae", "Enterovirus", "Enterovirus betacoxsackie", ["Coxsackievirus B3", "Echovirus 30", "Echovirus 11"], 7400, "sw", .07, 5),
+    ("Picornaviridae", "Enterovirus", "Enterovirus coxsackiepol", ["Poliovirus 1 (Sabin-like)", "Coxsackievirus A24"], 7440, "ws", .05, 4.5),
+    ("Picornaviridae", "Enterovirus", "Enterovirus deconjuncti", ["Enterovirus D68 B3"], 7367, "nw", .08, 5.5),
+    ("Picornaviridae", "Enterovirus", "Rhinovirus A", ["Rhinovirus A101", "Rhinovirus A16"], 7152, "nc", .14, 6),
+    ("Picornaviridae", "Enterovirus", "Rhinovirus B", ["Rhinovirus B14", "Rhinovirus B70"], 7200, "nc", .10, 6),
+    ("Picornaviridae", "Enterovirus", "Rhinovirus C", ["Rhinovirus C2", "Rhinovirus C15", "Rhinovirus C43"], 7100, "nc", .12, 6.2),
+    ("Picornaviridae", "Parechovirus", "Parechovirus ahumpari", ["Parechovirus A1", "Parechovirus A3"], 7350, "sw", .09, 5),
+    ("Picornaviridae", "Kobuvirus", "Kobuvirus aichi", ["Aichi virus 1"], 8250, "ws", .18, 4.5),
+    ("Picornaviridae", "Hepatovirus", "Hepatovirus ahepa", ["Hepatitis A virus IA"], 7480, "ws", .05, 4),
+    ("Picornaviridae", "Cardiovirus", "Cardiovirus saffoldi", ["Saffold virus 2"], 8100, "ns", .05, 4),
+    ("Caliciviridae", "Norovirus", "Norovirus norwalkense", ["Norovirus GII.17", "Norovirus GII.2", "Norovirus GII.6", "Norovirus GII.4 Sydney"], 7550, "sw", .14, 7),
+    ("Caliciviridae", "Norovirus", "Norovirus norwalkense", ["Norovirus GI.3", "Norovirus GI.6"], 7600, "ws", .10, 5.5),
+    ("Caliciviridae", "Sapovirus", "Sapovirus sapporoense", ["Sapovirus GII.1", "Sapovirus GIV.1", "Sapovirus GI.1"], 7450, "sw", .08, 5),
+    ("Coronaviridae", "Betacoronavirus", "Betacoronavirus pandemicum", ["SARS-CoV-2 JN.1", "SARS-CoV-2 KP.3", "SARS-CoV-2 XBB.1.5"], 29900, "nwc", .16, 7),
+    ("Coronaviridae", "Betacoronavirus", "Betacoronavirus gravedinis", ["Human coronavirus OC43", "Human coronavirus HKU1"], 30741, "nc", .08, 5.5),
+    ("Coronaviridae", "Alphacoronavirus", "Alphacoronavirus chicagoense", ["Human coronavirus 229E"], 27300, "nc", .08, 5.5),
+    ("Coronaviridae", "Alphacoronavirus", "Alphacoronavirus amsterdamense", ["Human coronavirus NL63"], 27550, "nc", .09, 5.5),
+    ("Orthomyxoviridae", "Alphainfluenzavirus", "Alphainfluenzavirus influenzae", ["Influenza A virus (H1N1)pdm09"], None, "ncw", .12, 7, "flu"),
+    ("Orthomyxoviridae", "Alphainfluenzavirus", "Alphainfluenzavirus influenzae", ["Influenza A virus (H3N2)"], None, "nc", .10, 7, "flu"),
+    ("Orthomyxoviridae", "Alphainfluenzavirus", "Alphainfluenzavirus influenzae", ["Influenza A virus (H5N1) 2.3.4.4b"], None, "w", .04, 4.5, "flu"),
+    ("Orthomyxoviridae", "Betainfluenzavirus", "Betainfluenzavirus influenzae", ["Influenza B virus (Victoria)"], None, "nc", .10, 6.5, "flu"),
+    ("Pneumoviridae", "Orthopneumovirus", "Orthopneumovirus hominis", ["Respiratory syncytial virus A", "Respiratory syncytial virus B"], 15222, "ncw", .12, 6.5),
+    ("Pneumoviridae", "Metapneumovirus", "Metapneumovirus hominis", ["Human metapneumovirus A2", "Human metapneumovirus B1"], 13300, "nc", .08, 6),
+    ("Paramyxoviridae", "Respirovirus", "Respirovirus pneumoniae", ["Human parainfluenza virus 3"], 15460, "nc", .08, 6),
+    ("Paramyxoviridae", "Respirovirus", "Respirovirus laryngotracheitidis", ["Human parainfluenza virus 1"], 15600, "nc", .05, 5.5),
+    ("Adenoviridae", "Mastadenovirus", "Mastadenovirus faecale", ["Human adenovirus F41", "Human adenovirus F40"], 34214, "sw", .12, 6),
+    ("Adenoviridae", "Mastadenovirus", "Mastadenovirus blackbeardi", ["Human adenovirus B3", "Human adenovirus B7"], 35300, "ncw", .07, 5.5),
+    ("Adenoviridae", "Mastadenovirus", "Mastadenovirus caesari", ["Human adenovirus C2"], 35937, "snc", .10, 4.5),
+    ("Sedoreoviridae", "Rotavirus", "Rotavirus alphagastroenteritidis", ["Rotavirus A G1P[8]", "Rotavirus A G9P[8]"], None, "sw", .08, 6.5, "rota"),
+    ("Astroviridae", "Mamastrovirus", "Mamastrovirus hominis", ["Human astrovirus 1", "Human astrovirus 4"], 6800, "sw", .07, 5.5),
+    ("Astroviridae", "Mamastrovirus", "Mamastrovirus melbournense", ["Astrovirus MLB1", "Astrovirus MLB2"], 6171, "sw", .05, 5),
+    ("Parvoviridae", "Bocaparvovirus", "Bocaparvovirus primate1", ["Human bocavirus 1", "Human bocavirus 2"], 5543, "snw", .10, 4.5),
+    ("Parvoviridae", "Erythroparvovirus", "Erythroparvovirus primate1", ["Parvovirus B19"], 5600, "cn", .04, 4),
+    ("Parvoviridae", "Protoparvovirus", "Protoparvovirus ungulate1", ["Porcine parvovirus"], 5075, "s", .03, 3.5),
+    ("Anelloviridae", "Alphatorquevirus", "Alphatorquevirus homin1", ["Torque teno virus 1", "Torque teno virus 3", "Torque teno virus 6", "Torque teno virus 10"], 3800, "csnw", .25, 3.5),
+    ("Anelloviridae", "Betatorquevirus", "Betatorquevirus homin1", ["Torque teno mini virus 1", "Torque teno mini virus 4"], 2900, "csn", .16, 3),
+    ("Polyomaviridae", "Betapolyomavirus", "Betapolyomavirus secuhominis", ["JC polyomavirus"], 5130, "ws", .30, 5.5),
+    ("Polyomaviridae", "Betapolyomavirus", "Betapolyomavirus hominis", ["BK polyomavirus"], 5150, "wc", .16, 5),
+    ("Papillomaviridae", "Alphapapillomavirus", "Alphapapillomavirus 9", ["Human papillomavirus 16"], 7900, "cw", .06, 4),
+    ("Orthoherpesviridae", "Lymphocryptovirus", "Lymphocryptovirus humangamma4", ["Epstein-Barr virus"], 172000, "cn", .10, 4.5),
+    ("Orthoherpesviridae", "Cytomegalovirus", "Cytomegalovirus humanbeta5", ["Human cytomegalovirus"], 235000, "cs", .05, 4),
+    ("Circoviridae", "Circovirus", "Circovirus porcine2", ["Porcine circovirus 2"], 1767, "sw", .07, 4.5),
+    ("Circoviridae", "Circovirus", "Circovirus porcine3", ["Porcine circovirus 3"], 2000, "s", .04, 4),
+    ("Circoviridae", "Cyclovirus", "Cyclovirus vietnamense", ["Human-associated cyclovirus 8"], 1800, "sw", .06, 3.5),
+    ("Genomoviridae", "Gemycircularvirus", "Gemycircularvirus humas1", ["Genomovirus HV-GcV1", "Genomovirus SL1"], 2200, "wsn", .08, 3.5),
+    ("Hepadnaviridae", "Orthohepadnavirus", "Orthohepadnavirus hominoidei", ["Hepatitis B virus genotype D", "Hepatitis B virus genotype A2"], 3215, "cs", .04, 4.5),
+    ("Virgaviridae", "Tobamovirus", "Tobamovirus capsici", ["Pepper mild mottle virus"], 6357, "ws", .40, 6.5),
+    ("Virgaviridae", "Tobamovirus", "Tobamovirus tomatotessellati", ["Tomato mosaic virus", "Tomato brown rugose fruit virus"], 6380, "ws", .25, 6),
+    ("Solemoviridae", "Polerovirus", "Polerovirus TYV", ["Turnip yellows virus"], 5694, "w", .12, 4),
+    ("Solemoviridae", "Polerovirus", "Polerovirus CABYV", ["Cucurbit aphid-borne yellows virus"], 5660, "ws", .10, 4),
+    ("Tombusviridae", "Tombusvirus", "Tombusvirus lycopersici", ["Tomato bushy stunt virus"], 4780, "ws", .12, 4),
+    ("Intestiviridae", "Carjivirus", "Carjivirus communis", ["crAss-like phage crAss001", "crAss-like phage crAss002", "crAss-like phage IAS"], 97065, "sw", .45, 8),
+    ("Microviridae", "Gokushovirus", "Gokushovirus gokushi", ["Gokushovirus GKS1", "Gokushovirus GKS7"], 5000, "sw", .35, 6),
+]
+
+SEG_FLU = [("PB2", 2341), ("PB1", 2341), ("PA", 2233), ("HA", 1778), ("NP", 1565), ("NA", 1413), ("M", 1027), ("NS", 890)]
+SEG_ROTA = [("1", 3302), ("2", 2693), ("3", 2591), ("4", 2362), ("5", 1611), ("6", 1356), ("7", 1104),
+            ("8", 1059), ("9", 1074), ("10", 751), ("11", 667)]
