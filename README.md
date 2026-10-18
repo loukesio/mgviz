@@ -415,7 +415,6 @@ src/mgviz/
   pipeline/                         the step CLIs used by the Nextflow modules
   synthetic.py                      synthetic EsViritu outputs for tests and demos
 docs/usage.md, output.md, databases.md   usage, outputs, database choices and builds
-design_handoff_mgviz_report/        report design specification and prototypes
 ```
 
 ```bash
