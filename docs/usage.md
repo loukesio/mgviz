@@ -86,12 +86,13 @@ Profiles combine: `-profile test,docker`, `-profile singularity,slurm`.
 
 Processes carry the labels `process_single`, `process_low`, `process_medium` and
 `process_high`; `conf/base.config` maps them to CPUs, memory and time, doubled on
-each retry and capped by `--max_cpus`, `--max_memory`, `--max_time`. Override any
+each retry and capped by `process.resourceLimits`. Override the limits or any
 process in a custom config:
 
 ```groovy
 // custom.config, passed with -c custom.config
 process {
+    resourceLimits = [ cpus: 32, memory: '128.GB', time: '72.h' ]
     withName: 'MAP_INITIAL' { cpus = 16; memory = '48.GB' }
     withName: 'FASTP'       { ext.args = '--qualified_quality_phred 20 --dedup' }
 }

@@ -12,7 +12,7 @@ Initial release.
 - nf-core style layout: `workflows/`, `subworkflows/local/`, `modules/local/`, `conf/`, parameter schema with `--help` and validation, samplesheet schema, resource labels, `ext.args`/`ext.prefix`, `versions.yml` per process collected into `pipeline_info/software_versions.yml`.
 - Bundled `test` profile: two simulated samples against a 53-record database.
 - One container image for every step, published to `ghcr.io/loukesio/mgviz` by GitHub Actions.
-- Standalone entry workflow in every module; `BUILD_DB` module for custom databases.
+- Standalone entry workflow in every module; `BUILD_DB` module for custom databases, `db_sources` to prepare accession tables from RefSeq viral and to merge sources (docs/databases.md).
 
 ### Report
 

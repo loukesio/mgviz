@@ -19,6 +19,7 @@ results/
 # generated reports and demo data
 *.html
 !design_handoff_mgviz_report/reference/*.html
+!docs/site/*.html
 !src/mgviz/templates/report.html
 demo_esv/
 demo_*/
@@ -30,3 +31,6 @@ demo_*/
 
 # design brief archive
 docs/*.zip
+
+# logo design exports (source files, not needed by the repo)
+mgviz_logo_export/

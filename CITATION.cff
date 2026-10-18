@@ -1,0 +1,18 @@
+cff-version: 1.2.0
+message: "If you use mgviz, please cite it as below, together with EsViritu and the tools listed in CITATIONS.md."
+title: "mgviz: virus detection from metagenomic reads with an interactive report"
+type: software
+authors:
+  - family-names: Theodosiou
+    given-names: Loukas
+version: 0.1.0
+date-released: 2026-10-19
+license: MIT
+repository-code: "https://github.com/loukesio/mgviz"
+url: "https://loukesio.github.io/mgviz/"
+keywords:
+  - metagenomics
+  - virome
+  - virus detection
+  - nextflow
+  - visualisation

@@ -6,7 +6,7 @@ name: Demo report
 on:
   push:
     branches: [main]
-    paths: ["src/**", "pyproject.toml", ".github/workflows/pages.yml"]
+    paths: ["src/**", "pyproject.toml", "docs/site/**", "docs/images/**", ".github/workflows/pages.yml"]
   workflow_dispatch:
 
 permissions:
@@ -27,11 +27,13 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install .
-      - name: Build the demo reports
+      - name: Build the landing page and the demo reports
         run: |
-          mkdir -p site
-          mgviz demo demo100 -n 100 --seed 11 -o site/index.html
-          mgviz demo demo4 -n 4 -o site/small.html
+          mkdir -p site/images
+          cp docs/site/index.html site/
+          cp docs/images/logo_alive.gif docs/images/logo_alive_dark.gif docs/images/lockup_light.png docs/images/lockup_dark.png docs/images/*.jpg site/images/
+          mgviz demo demo100 -n 100 --seed 11 --run-id "demo, 100 samples" -o site/demo100.html
+          mgviz demo demo4 -n 4 --run-id "demo, 4 samples" -o site/demo4.html
       - uses: actions/upload-pages-artifact@v3
         with:
           path: site

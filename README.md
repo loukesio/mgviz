@@ -1,4 +1,11 @@
-# mgviz
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/images/logo_alive_dark.gif">
+    <img src="docs/images/logo_alive.gif" width="220" alt="mgviz">
+  </picture>
+</p>
+<h1 align="center">mgviz</h1>
+<p align="center"><b>Virus detection reports</b> · metagenomic reads in, an interactive report out</p>
 
 [![CI](https://github.com/loukesio/mgviz/actions/workflows/ci.yml/badge.svg)](https://github.com/loukesio/mgviz/actions/workflows/ci.yml)
 [![Container](https://github.com/loukesio/mgviz/actions/workflows/docker.yml/badge.svg)](https://github.com/loukesio/mgviz/actions/workflows/docker.yml)
@@ -24,8 +31,8 @@ accepted directly by the report.
 
 <p align="center"><img src="docs/images/overview.jpg" width="900" alt="mgviz report, Overview"></p>
 
-**Try the report now:** [loukesio.github.io/mgviz](https://loukesio.github.io/mgviz/) is a
-live report built from 100 synthetic samples. Everything in it is clickable.
+**Try the report now:** [loukesio.github.io/mgviz](https://loukesio.github.io/mgviz/) hosts
+two live demo reports, 4 and 100 synthetic samples. Everything in them is clickable.
 
 ## Contents
 
@@ -269,6 +276,12 @@ other three.
 | geNomad database v1.9 | `--genomad_db` (optional) | `genomad download-database db/` or the [geNomad releases](https://github.com/apcamargo/genomad) |
 | Host or spike-in FASTA | `--filter_fasta` (optional) | e.g. a human reference |
 
+The EsViritu database is curated for human and animal viruses and is the right
+default for clinical, respiratory and stool samples. For wastewater and other
+environmental samples, [docs/databases.md](docs/databases.md) describes an
+extended database (EsViritu plus RefSeq viral, built with
+`mgviz.pipeline.db_sources`) and how to benchmark it before adopting it.
+
 To build your own database in the same format from a FASTA, an accession table
 and the NCBI taxdump, use the standalone `BUILD_DB` module:
 
@@ -300,7 +313,6 @@ nextflow run modules/local/build_db/main.nf -profile docker \
 | `--sp_thresh` | `0.90` | consensus identity below which the species is downgraded |
 | `--subsp_thresh` | `0.95` | consensus identity below which the subspecies is downgraded |
 | `--container` | `ghcr.io/loukesio/mgviz:0.1.0` | image used by every process |
-| `--max_cpus`, `--max_memory`, `--max_time` | 16, 64.GB, 48.h | caps on what a single task may request |
 
 Full descriptions: `nextflow run loukesio/mgviz --help`, or [docs/usage.md](docs/usage.md).
 
@@ -318,7 +330,8 @@ Full descriptions: `nextflow run loukesio/mgviz --help`, or [docs/usage.md](docs
 
 Processes carry nf-core style labels (`process_single`, `process_low`,
 `process_medium`, `process_high`) with resources set in `conf/base.config`,
-capped by `--max_cpus`, `--max_memory` and `--max_time`, and doubled on retry.
+doubled on retry and capped by `process.resourceLimits` (16 CPUs, 64 GB, 48 h
+by default; the `test` and `laptop` profiles lower it).
 Tool flags can be changed per process with `ext.args` in a custom config passed
 with `-c` (see `conf/modules.config`). Software versions of every run are
 collected in `<outdir>/pipeline_info/software_versions.yml` next to Nextflow's
@@ -406,7 +419,7 @@ src/mgviz/
   templates/report.html, report.css, js/*.js   the report (d3 v7, inlined)
   pipeline/                         the step CLIs used by the Nextflow modules
   synthetic.py                      synthetic EsViritu outputs for tests and demos
-docs/usage.md, docs/output.md       usage and output documentation
+docs/usage.md, output.md, databases.md   usage, outputs, database choices and builds
 design_handoff_mgviz_report/        report design specification and prototypes
 ```
 
@@ -439,7 +452,8 @@ database. Please cite EsViritu and the tools below when you publish results:
 
 Colour palettes: [ltc](https://github.com/loukesio/ltc-color-palettes).
 Report design developed with Claude Design; the specification is in
-`design_handoff_mgviz_report/`.
+`design_handoff_mgviz_report/`. To cite mgviz itself, use the metadata in
+[CITATION.cff](CITATION.cff) (GitHub shows a "Cite this repository" button).
 
 ## License
 

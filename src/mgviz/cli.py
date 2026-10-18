@@ -42,7 +42,7 @@ def _cmd_demo(args: argparse.Namespace) -> int:
     print(f"Wrote synthetic EsViritu outputs to {args.directory}")
     ns = argparse.Namespace(
         esviritu_dir=args.directory, output=args.output, title=None, json=None,
-        samples=None, run_id=os.path.basename(os.path.normpath(args.directory)),
+        samples=None, run_id=args.run_id or os.path.basename(os.path.normpath(args.directory)),
     )
     return _cmd_report(ns)
 
@@ -69,6 +69,7 @@ def main(argv: list[str] | None = None) -> int:
                       help="up to 4 uses the fixed profiles; more generates typed samples")
     demo.add_argument("--seed", type=int, default=7)
     demo.add_argument("-o", "--output", help="output HTML path")
+    demo.add_argument("--run-id", help="run identifier shown in the report header")
     demo.set_defaults(func=_cmd_demo)
 
     args = parser.parse_args(argv)
