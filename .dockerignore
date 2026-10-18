@@ -1,7 +1,10 @@
 EsViritu/
 .git/
-pipeline/work/
-pipeline/results/
+work/
+results/
+assets/test_data/
+design_handoff_mgviz_report/
+docs/
 *.html
 **/__pycache__/
 .pytest_cache/

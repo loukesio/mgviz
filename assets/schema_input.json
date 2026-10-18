@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/loukesio/mgviz/main/assets/schema_input.json",
+  "title": "loukesio/mgviz samplesheet",
+  "description": "One row per sample: name, FASTQ file(s) and an optional sample type.",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "properties": {
+      "sample": {
+        "type": "string",
+        "pattern": "^\\S+$",
+        "errorMessage": "Sample name must be provided and cannot contain spaces",
+        "meta": ["id"]
+      },
+      "fastq_1": {
+        "type": "string",
+        "pattern": "^\\S+\\.f(ast)?q\\.gz$",
+        "errorMessage": "FASTQ file for reads 1 must be provided, cannot contain spaces and must have extension '.fq.gz' or '.fastq.gz'"
+      },
+      "fastq_2": {
+        "type": "string",
+        "pattern": "^(\\S+\\.f(ast)?q\\.gz)?$",
+        "errorMessage": "FASTQ file for reads 2 cannot contain spaces and must have extension '.fq.gz' or '.fastq.gz'"
+      },
+      "type": {
+        "type": "string",
+        "enum": ["stool", "nasal", "wastewater", "clinical", ""],
+        "errorMessage": "type must be one of stool, nasal, wastewater, clinical (or empty)",
+        "meta": ["type"]
+      }
+    },
+    "required": ["sample", "fastq_1"]
+  }
+}

@@ -1,0 +1,47 @@
+name: Demo report
+
+# Builds a 100-sample synthetic report with `mgviz demo` and publishes it as the project page,
+# so the interactive report can be tried without installing anything.
+
+on:
+  push:
+    branches: [main]
+    paths: ["src/**", "pyproject.toml", ".github/workflows/pages.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install .
+      - name: Build the demo reports
+        run: |
+          mkdir -p site
+          mgviz demo demo100 -n 100 --seed 11 -o site/index.html
+          mgviz demo demo4 -n 4 -o site/small.html
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

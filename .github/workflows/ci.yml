@@ -29,9 +29,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: nf-core/setup-nextflow@v2
-      - name: Parse the workflow and every module
+      - name: Config, schema help and a dry run of the test profile
         run: |
-          cd pipeline
           nextflow config -flat . > /dev/null
-          nextflow run main.nf --help > /dev/null 2>&1 || true
-          for m in modules/*.nf; do nextflow run "$m" -preview > /dev/null 2>&1 || echo "preview failed for $m (expected without inputs)"; done
+          nextflow run main.nf --help
+          nextflow run main.nf -profile test -preview --outdir results_preview

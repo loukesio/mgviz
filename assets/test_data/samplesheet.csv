@@ -1,0 +1,3 @@
+sample,fastq_1,fastq_2,type
+stool_T1,reads/stool_T1_R1.fastq.gz,reads/stool_T1_R2.fastq.gz,stool
+nasal_T2,reads/nasal_T2_R1.fastq.gz,reads/nasal_T2_R2.fastq.gz,nasal

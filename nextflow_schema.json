@@ -1,0 +1,138 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/loukesio/mgviz/main/nextflow_schema.json",
+  "title": "loukesio/mgviz pipeline parameters",
+  "description": "Virus detection from metagenomic reads with an interactive d3 report",
+  "type": "object",
+  "$defs": {
+    "input_output_options": {
+      "title": "Input/output options",
+      "type": "object",
+      "fa_icon": "fas fa-terminal",
+      "description": "Define where the pipeline should find input data and save output data.",
+      "required": ["samplesheet", "db", "outdir"],
+      "properties": {
+        "samplesheet": {
+          "type": "string",
+          "format": "file-path",
+          "exists": true,
+          "mimetype": "text/csv",
+          "pattern": "^\\S+\\.csv$",
+          "schema": "assets/schema_input.json",
+          "description": "Samplesheet CSV with columns sample, fastq_1, fastq_2 (optional), type (optional).",
+          "help_text": "Relative FASTQ paths are resolved against the samplesheet's directory. See docs/usage.md.",
+          "fa_icon": "fas fa-file-csv"
+        },
+        "db": {
+          "type": "string",
+          "format": "directory-path",
+          "exists": true,
+          "description": "EsViritu-format database directory (virus_pathogen_database.fna, .mmi, .all_metadata.tsv).",
+          "fa_icon": "fas fa-database"
+        },
+        "outdir": {
+          "type": "string",
+          "format": "directory-path",
+          "default": "results",
+          "description": "Output directory; the report is written to <outdir>/mgviz_report.html.",
+          "fa_icon": "fas fa-folder-open"
+        },
+        "title": {
+          "type": "string",
+          "default": "mgviz report",
+          "description": "Title shown in the report's browser tab."
+        }
+      }
+    },
+    "optional_steps": {
+      "title": "Optional steps",
+      "type": "object",
+      "fa_icon": "fas fa-toggle-on",
+      "description": "Host filtering, gene prediction and geNomad scoring.",
+      "properties": {
+        "filter_fasta": {
+          "type": "string",
+          "format": "file-path",
+          "exists": true,
+          "description": "Host or spike-in FASTA; reads mapping to it are removed before virus detection."
+        },
+        "genomad_db": {
+          "type": "string",
+          "format": "directory-path",
+          "exists": true,
+          "description": "geNomad database directory; enables virus scoring, hallmark genes and ICTV taxonomy per consensus."
+        },
+        "genomad_splits": {
+          "type": "integer",
+          "default": 0,
+          "minimum": 0,
+          "description": "mmseqs2 database splits for geNomad; 8 keeps memory under 8 GB."
+        },
+        "predict_proteins": {
+          "type": "boolean",
+          "default": true,
+          "description": "Predict ORFs on every consensus genome with pyrodigal-gv."
+        }
+      }
+    },
+    "alignment_options": {
+      "title": "Alignment and filtering",
+      "type": "object",
+      "fa_icon": "fas fa-align-left",
+      "description": "minimap2 settings and the alignment filters applied at every mapping step (EsViritu defaults).",
+      "properties": {
+        "min_aln_len": { "type": "integer", "default": 100, "minimum": 1, "description": "Minimum aligned length in nucleotides." },
+        "min_read_cov": { "type": "number", "default": 0.9, "minimum": 0, "maximum": 1, "description": "Minimum aligned fraction of the read." },
+        "min_identity": { "type": "number", "default": 0.8, "minimum": 0, "maximum": 1, "description": "Minimum alignment identity, (aligned - mismatches) / aligned." },
+        "min_read_len": { "type": "integer", "default": 50, "minimum": 1, "description": "Minimum read length kept by fastp." },
+        "mm_preset": { "type": "string", "default": "sr", "enum": ["sr", "map-ont", "map-hifi", "map-pb"], "description": "minimap2 preset (-x)." },
+        "mm_k": { "type": "string", "default": "500M", "description": "minimap2 batch size (-K)." }
+      }
+    },
+    "clustering_taxonomy": {
+      "title": "Clustering and taxonomy thresholds",
+      "type": "object",
+      "fa_icon": "fas fa-project-diagram",
+      "properties": {
+        "share_thresh": { "type": "number", "default": 0.33, "minimum": 0, "maximum": 1, "description": "Fraction of shared reads (of the smaller genome) that joins two references into one cluster." },
+        "sp_thresh": { "type": "number", "default": 0.9, "minimum": 0, "maximum": 1, "description": "Consensus identity below which the species is reported as unclassified." },
+        "subsp_thresh": { "type": "number", "default": 0.95, "minimum": 0, "maximum": 1, "description": "Consensus identity below which the subspecies is reported as unclassified." }
+      }
+    },
+    "compute": {
+      "title": "Compute",
+      "type": "object",
+      "fa_icon": "fas fa-server",
+      "properties": {
+        "container": { "type": "string", "default": "ghcr.io/loukesio/mgviz:0.1.0", "description": "Container image used by every process.", "hidden": true },
+        "max_cpus": { "type": "integer", "default": 16, "description": "Maximum CPUs a single task may request.", "hidden": true },
+        "max_memory": { "type": "string", "default": "64.GB", "pattern": "^\\d+(\\.\\d+)?\\.?\\s*(K|M|G|T)?B$", "description": "Maximum memory a single task may request.", "hidden": true },
+        "max_time": { "type": "string", "default": "48.h", "pattern": "^(\\d+\\.?\\s*(s|m|h|d|day)\\s*)+$", "description": "Maximum time a single task may request.", "hidden": true }
+      }
+    },
+    "standalone_module_inputs": {
+      "title": "Standalone module inputs",
+      "type": "object",
+      "description": "Only used when a single module is run on its own (nextflow run modules/local/<name>/main.nf).",
+      "properties": {
+        "reads": { "type": "string", "hidden": true }, "sample": { "type": "string", "default": "sample", "hidden": true },
+        "bam": { "type": "string", "hidden": true }, "refs": { "type": "string", "hidden": true },
+        "consensus": { "type": "string", "hidden": true }, "db_fasta": { "type": "string", "hidden": true },
+        "db_table": { "type": "string", "hidden": true }, "db_name": { "type": "string", "hidden": true },
+        "taxdump": { "type": "string", "hidden": true }, "acc2taxid": { "type": "string", "hidden": true },
+        "db_outdir": { "type": "string", "default": "db", "hidden": true }, "stats": { "type": "string", "hidden": true },
+        "windows": { "type": "string", "hidden": true }, "adj": { "type": "string", "hidden": true },
+        "readcount": { "type": "string", "hidden": true }, "fastp_json": { "type": "string", "hidden": true },
+        "sample_dirs": { "type": "string", "hidden": true }, "samples_tsv": { "type": "string", "hidden": true }
+      }
+    }
+  },
+  "allOf": [
+    { "$ref": "#/$defs/input_output_options" },
+    { "$ref": "#/$defs/optional_steps" },
+    { "$ref": "#/$defs/alignment_options" },
+    { "$ref": "#/$defs/clustering_taxonomy" },
+    { "$ref": "#/$defs/compute" },
+    { "$ref": "#/$defs/standalone_module_inputs" }
+  ]
+}

@@ -6,6 +6,7 @@
 [![run with docker](https://img.shields.io/badge/run%20with-docker-0db7ed?logo=docker)](https://ghcr.io/loukesio/mgviz)
 [![run with singularity](https://img.shields.io/badge/run%20with-singularity-1d355c)](https://sylabs.io/docs/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Live demo](https://img.shields.io/badge/report-live%20demo-1f5f8b)](https://loukesio.github.io/mgviz/)
 
 **mgviz** detects viruses in short-read metagenomes and explains every call in an
 interactive report. Reads are mapped to a reference database of ~31,000 viral
@@ -23,7 +24,12 @@ accepted directly by the report.
 
 <p align="center"><img src="docs/images/overview.jpg" width="900" alt="mgviz report, Overview"></p>
 
+**Try the report now:** [loukesio.github.io/mgviz](https://loukesio.github.io/mgviz/) is a
+live report built from 100 synthetic samples. Everything in it is clickable.
+
 ## Contents
+
+- [What mgviz adds over EsViritu](#what-mgviz-adds-over-esviritu)
 
 - [Pipeline summary](#pipeline-summary)
 - [Quick start](#quick-start)
@@ -39,29 +45,91 @@ accepted directly by the report.
 - [Development](#development)
 - [Credits and citations](#credits-and-citations)
 
+## What mgviz adds over EsViritu
+
+The detection method is EsViritu's, re-implemented with care and credited. What is
+built on top of it is new:
+
+| | EsViritu | mgviz |
+|---|---|---|
+| Execution | one Python command per sample, run one after another | Nextflow: samples in parallel, resumable, any executor (local, SLURM, cloud), one validated container, schema-checked parameters, bundled test profile |
+| Steps | fixed sequence inside one script | thirteen independent processes, each runnable alone, with `ext.args` to change any tool's flags |
+| Evidence per call | reads, coverage, identity in a table | the same plus a confidence tier (High / Medium / Low / Trace) with the rule shown on hover, and "Needs checking" flags for divergent genomes, low geNomad scores and animal viruses in human samples |
+| Annotation | none | ORFs for every consensus (pyrodigal-gv) and geNomad virus score, hallmark genes and ICTV taxonomy as an independent check on the mapping |
+| Cross-sample view | none; one report per run | Overview with per-sample stories, shared and prevalent viruses, QC funnel; Samples × taxa heatmap clustered on both axes |
+| Taxonomy | a static PNG tree of the database | interactive trees of the results: rectangular with per-sample columns, radial publication figure with rings and family arcs that rotates and zooms to a family, composition icicle and bars |
+| Genome view | a 100-window sparkline | genome drawer with depth, ORF arrows, geNomad strip, per-segment panels for segmented viruses and overlay of the same genome across samples |
+| Export | TSV | SVG and PNG of every figure, CSV and TSV of every table, full data bundle as JSON |
+| Design | default reactable styling | one focus model across all views, light and dark themes, colour-blind-safe family palettes, every colour and number tied to a question |
+| Provenance | log file | software versions, timeline, trace and DAG for every run |
+
+EsViritu output directories are still accepted directly by `mgviz report`, so
+existing runs can be explored in the new report without re-running anything.
+
 ## Pipeline summary
 
 ```mermaid
 flowchart LR
-    R[reads] --> F[FASTP<br/>trim + QC]
-    F --> H[HOST_FILTER<br/>minimap2, optional]
-    H --> M1[MAP_INITIAL<br/>minimap2 vs full DB]
-    M1 --> C1[CLUSTER_R1<br/>read-sharing exemplars]
-    C1 --> M2[MAP_R2]
-    M2 --> C2[CLUSTER_R2]
-    C2 --> M3[MAP_R3<br/>final alignment]
-    M3 --> CO[CONSENSUS<br/>samtools]
-    M3 --> ST[CONTIG_STATS<br/>breadth, depth, identity, π, 100 windows]
-    CO --> LCA[LCA_TAXONOMY]
-    CO --> PP[PREDICT_PROTEINS<br/>pyrodigal-gv, optional]
-    CO --> GN[GENOMAD<br/>virus score, optional]
-    ST --> T[TABLES]
+    classDef qc   fill:#eaf0f6,stroke:#2b5d86,color:#1c201e
+    classDef det  fill:#fbf1e6,stroke:#d9822b,color:#1c201e
+    classDef chr  fill:#e9f4ee,stroke:#3a9a6e,color:#1c201e
+    classDef rep  fill:#f1edf7,stroke:#7b63b8,color:#1c201e
+    classDef data fill:#ffffff,stroke:#636a66,color:#1c201e
+    classDef opt  stroke-dasharray:5 3
+
+    reads[("reads<br/>FASTQ")]:::data
+    db[("virus database<br/>31k genomes")]:::data
+    gdb[("geNomad DB")]:::data
+
+    subgraph S1["1 · Reads"]
+        direction LR
+        F["FASTP<br/>trim · dedup · QC"]:::qc
+        H["HOST_FILTER<br/>minimap2 vs host"]:::qc
+        F --> H
+    end
+    subgraph S2["2 · Detection (EsViritu method)"]
+        direction LR
+        M1["MAP_INITIAL<br/>minimap2, secondary hits kept"]:::det
+        C1["CLUSTER_R1<br/>read-sharing exemplars"]:::det
+        M2["MAP_R2"]:::det
+        C2["CLUSTER_R2"]:::det
+        M3["MAP_R3<br/>final alignment"]:::det
+        M1 --> C1 --> M2 --> C2 --> M3
+    end
+    subgraph S3["3 · Characterisation"]
+        direction LR
+        CO["CONSENSUS"]:::chr
+        ST["CONTIG_STATS<br/>breadth · depth · identity · π"]:::chr
+        LCA["LCA_TAXONOMY"]:::chr
+        PP["PREDICT_PROTEINS<br/>pyrodigal-gv"]:::chr
+        GN["GENOMAD<br/>virus score · hallmarks"]:::chr
+        CO --> LCA
+        CO --> PP
+        CO --> GN
+    end
+    subgraph S4["4 · Report"]
+        direction LR
+        T["TABLES<br/>EsViritu format"]:::rep
+        REP["MGVIZ_REPORT<br/>interactive HTML"]:::rep
+        T --> REP
+    end
+
+    reads --> F
+    H --> M1
+    db -.-> M1
+    db -.-> LCA
+    gdb -.-> GN
+    M3 --> CO
+    M3 --> ST
+    ST --> T
     LCA --> T
-    T --> REP[MGVIZ_REPORT]
     PP --> REP
     GN --> REP
-    REP --> HTML[(mgviz_report.html)]
+
+    class H,PP,GN opt
 ```
+
+Dashed boxes are optional steps (`--filter_fasta`, `--predict_proteins`, `--genomad_db`).
 
 | Step | Tools | What it does |
 |---|---|---|
@@ -109,8 +177,15 @@ flowchart LR
    ```
 
    Open `results/mgviz_report.html`. On a cluster, add `-profile docker,slurm`
-   (or `singularity,slurm`). To try the pipeline without data, see
-   [Development](#development) for the read simulator.
+   (or `singularity,slurm`). `nextflow run loukesio/mgviz --help` lists every
+   parameter.
+
+To check an installation first, run the bundled test data (two simulated
+samples against a 53-genome database, a few minutes on a laptop):
+
+```bash
+nextflow run loukesio/mgviz -profile test,docker --outdir results_test
+```
 
 ## The report
 
@@ -198,7 +273,7 @@ To build your own database in the same format from a FASTA, an accession table
 and the NCBI taxdump, use the standalone `BUILD_DB` module:
 
 ```bash
-nextflow run pipeline/modules/build_db.nf -profile docker \
+nextflow run modules/local/build_db/main.nf -profile docker \
     --db_fasta my_genomes.fna --db_table my_table.tsv --db_name mydb \
     --taxdump taxdump/ --acc2taxid nucl_gb.accession2taxid.gz --db_outdir db
 ```
@@ -225,6 +300,9 @@ nextflow run pipeline/modules/build_db.nf -profile docker \
 | `--sp_thresh` | `0.90` | consensus identity below which the species is downgraded |
 | `--subsp_thresh` | `0.95` | consensus identity below which the subspecies is downgraded |
 | `--container` | `ghcr.io/loukesio/mgviz:0.1.0` | image used by every process |
+| `--max_cpus`, `--max_memory`, `--max_time` | 16, 64.GB, 48.h | caps on what a single task may request |
+
+Full descriptions: `nextflow run loukesio/mgviz --help`, or [docs/usage.md](docs/usage.md).
 
 ## Profiles and resources
 
@@ -235,10 +313,16 @@ nextflow run pipeline/modules/build_db.nf -profile docker \
 | `conda` | conda environment from `environment.yml` |
 | `local` | local executor (default) |
 | `slurm` | SLURM executor, queue size 50 |
-| `laptop` | Docker Desktop limits: 4 CPUs and 6 GB per task, geNomad split into 8, retries; native arm64 image on Apple silicon |
+| `test` | bundled test data and database (`assets/test_data/`) |
+| `laptop` | Docker Desktop limits: 6 CPUs and 6 GB per task, geNomad split into 8, retries; native arm64 image on Apple silicon |
 
-Defaults are 4 CPUs and 8 GB per process; the three mapping steps use 8 CPUs
-and 16 GB. Override in a custom config passed with `-c`.
+Processes carry nf-core style labels (`process_single`, `process_low`,
+`process_medium`, `process_high`) with resources set in `conf/base.config`,
+capped by `--max_cpus`, `--max_memory` and `--max_time`, and doubled on retry.
+Tool flags can be changed per process with `ext.args` in a custom config passed
+with `-c` (see `conf/modules.config`). Software versions of every run are
+collected in `<outdir>/pipeline_info/software_versions.yml` next to Nextflow's
+timeline, report, trace and DAG.
 
 ## Outputs
 
@@ -255,6 +339,7 @@ results/
 ├── lca_taxonomy/     consensus identity and taxonomy adjustments
 ├── predict_proteins/ <sample>.orfs.tsv, .gff, .faa
 ├── genomad/          <sample>_final_consensus_virus_summary.tsv
+├── pipeline_info/    software_versions.yml, Nextflow timeline, report, trace, DAG
 └── tables/<sample>/  EsViritu-compatible tables:
                       <sample>.detected_virus.info.tsv
                       <sample>.detected_virus.assembly_summary.tsv
@@ -265,13 +350,13 @@ results/
 
 ## Running one step at a time
 
-Every module in `pipeline/modules/` carries its own entry workflow, so a step can
+Every module in `modules/local/` carries its own entry workflow, so a step can
 be run alone on existing files:
 
 ```bash
-nextflow run pipeline/modules/map_initial.nf -profile docker \
+nextflow run modules/local/map_initial/main.nf -profile docker \
     --reads 'reads/sample_R{1,2}.fastq.gz' --sample sample --db db/v3.2.4
-nextflow run pipeline/modules/mgviz_report.nf -profile docker \
+nextflow run modules/local/mgviz_report/main.nf -profile docker \
     --sample_dirs 'results/tables/*' --samples_tsv samples.tsv
 ```
 
@@ -310,12 +395,18 @@ EsViritu files per sample plus, when present, `<sample>.orfs.tsv` and
 ## Development
 
 ```
+main.nf, nextflow.config            entry point, parameters and profiles (nf-core layout)
+nextflow_schema.json                parameter schema: validation and --help
+workflows/mgviz.nf                  the workflow; subworkflows/local/ groups the clustering rounds and annotation
+modules/local/<step>/main.nf        one process per step, each with a standalone entry workflow
+conf/                               base resources, module options, test and laptop profiles
+assets/test_data/                   53-record database and two simulated samples for -profile test
 src/mgviz/
   loader.py, bundle.py, render.py   EsViritu files → JSON bundle → one HTML
   templates/report.html, report.css, js/*.js   the report (d3 v7, inlined)
   pipeline/                         the step CLIs used by the Nextflow modules
   synthetic.py                      synthetic EsViritu outputs for tests and demos
-pipeline/                           main.nf, modules/*.nf, nextflow.config
+docs/usage.md, docs/output.md       usage and output documentation
 design_handoff_mgviz_report/        report design specification and prototypes
 ```
 

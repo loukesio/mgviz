@@ -1,7 +1,7 @@
 # Implementation notes and deviations from README.md
 
 Implemented 2026-10-18 in `src/mgviz/templates/` (report.html, report.css, `js/00_core.js … 99_boot.js`)
-with `bundle.py`, `loader.py`, `synthetic.py` and the Nextflow report module updated. Checked
+with `bundle.py`, `loader.py`, `synthetic.py` and the Nextflow report module updated (pipeline now laid out nf-core style at the repository root). Checked
 against every screenshot at 4 and 100 samples, light and dark, in headless Chrome; every
 SVG/PNG/CSV/TSV export exercised programmatically; no console errors across tabs, layouts,
 focus states and the one-sample case.
