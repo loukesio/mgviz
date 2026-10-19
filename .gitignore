@@ -35,3 +35,6 @@ docs/*.zip
 mgviz_logo_export/
 design_handoff_mgviz_report/
 docs/design_brief/
+
+# internal handoff notes
+HANDOFF.md
